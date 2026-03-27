@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yönetim Paneli — DECATECH</title>
+<link rel="stylesheet" href="shared.css">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  .mgmt-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; align-items: start; }
+  .mgmt-col { display: flex; flex-direction: column; gap: 1rem; }
+  .mgmt-section { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem; }
+  .mgmt-section h3 { margin: 0 0 1rem 0; font-size: 0.9rem; font-weight: 600; color: var(--fg); }
+  .mgmt-input { width: 100%; padding: 0.5rem 0.75rem; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--fg); font-family: 'Geist', sans-serif; font-size: 0.85rem; box-sizing: border-box; }
+  .mgmt-input:focus { outline: none; border-color: var(--accent); }
+  .mgmt-btn { padding: 0.5rem 1.2rem; border: none; border-radius: 6px; cursor: pointer; font-family: 'Geist', sans-serif; font-size: 0.85rem; font-weight: 500; }
+  .mgmt-btn.primary { background: var(--accent); color: #fff; width: 100%; margin-top: 0.5rem; }
+  .mgmt-btn.primary:hover { opacity: 0.85; }
+  .mgmt-btn.danger { background: transparent; border: 1px solid var(--red, #ef4444); color: var(--red, #ef4444); padding: 0.3rem 0.7rem; font-size: 0.78rem; }
+  .mgmt-btn.danger:hover { background: var(--red, #ef4444); color: #fff; }
+  .mgmt-btn.small { background: transparent; border: 1px solid var(--border); color: var(--fg2); padding: 0.3rem 0.7rem; font-size: 0.78rem; }
+  .mgmt-btn.small:hover { border-color: var(--accent); color: var(--accent); }
+  .mgmt-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .form-stack { display: flex; flex-direction: column; gap: 0.5rem; }
+  .form-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+  /* Kullanıcı listesi */
+  .user-row { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0; border-bottom: 1px solid var(--border); }
+  .user-row:last-child { border-bottom: none; }
+  .user-av-sm { width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 700; flex-shrink: 0; }
+  .user-info-col { flex: 1; min-width: 0; }
+  .user-name-text { font-size: 0.85rem; font-weight: 500; color: var(--fg); }
+  .user-role-text { font-size: 0.75rem; color: var(--fg2); }
+  .user-row-actions { display: flex; gap: 0.4rem; align-items: center; flex-shrink: 0; }
+  .role-badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 20px; font-size: 0.72rem; font-weight: 600; background: var(--accent2, #3b82f6); color: #fff; }
+  .role-badge.admin { background: var(--violet, #8b5cf6); }
+  .search-box { margin-bottom: 0.75rem; }
+  .pagination { display: flex; align-items: center; gap: 0.4rem; margin-top: 0.75rem; }
+  .pagination span { font-size: 0.82rem; color: var(--fg2); }
+  /* Deadline kartları */
+  .dl-card { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; margin-bottom: 0.5rem; }
+  .dl-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem; }
+  .dl-card-title { font-size: 0.88rem; font-weight: 600; color: var(--fg); }
+  .dl-card-meta { font-size: 0.75rem; color: var(--fg2); margin-top: 0.2rem; }
+  .dl-card-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 0.5rem; }
+  .dl-date { font-size: 0.78rem; font-weight: 600; color: var(--accent); }
+  .dl-date.overdue { color: var(--red, #ef4444); }
+  .dl-edit-row { display: flex; gap: 0.4rem; margin-top: 0.5rem; align-items: center; }
+  .dl-edit-row input { flex: 1; padding: 0.3rem 0.5rem; background: var(--bg); border: 1px solid var(--border); border-radius: 5px; color: var(--fg); font-size: 0.8rem; font-family: 'Geist', sans-serif; }
+  .dl-edit-row input:focus { outline: none; border-color: var(--accent); }
+</style>
+</head>
+<body>
+
+<script>
+const user = localStorage.getItem('user');
+if (!user) window.location.href = 'login.html';
+const _u = JSON.parse(user || '{}');
+if (_u.role !== 'admin') window.location.href = 'index.html';
+</script>
+
+<header class="topbar">
+  <div class="logo-wrap">
+    <img class="logo-img" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAoAAAAC4CAYAAABze13KAAEAAElEQVR4nOz9eXwcx33fjX+qvtXV03NggAFAggQJHqJIiRIliqIoWpYlW7Jl27Fl27Ecx7GTbJLNs9ndJJvkl+yT3SS7ye7m2Gy2" alt="DECATECH">
+    <span class="logo-sep">/</span>
+    <span class="logo-proj" id="topbarProjName">Yönetim</span>
+  </div>
+  <div class="topbar-right">
+    <div class="theme-toggle" id="themeToggleBtn" onclick="toggleTheme()">🌙</div>
+    <div class="topbar-divider"></div>
+    <div class="user-pill">
+      <div class="user-av" id="userPillAv">AY</div>
+      <div class="user-name" id="userPillName">Admin</div>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+<aside class="sidebar">
+  <div class="proj-switcher-row" onclick="toggleProjDD()">
+    <div class="proj-color-dot" id="projColorDot"></div>
+    <div class="proj-switcher-name" id="sidebarProjName">Proje X</div>
+    <div class="proj-switcher-chevron" id="projChevron">⌄</div>
+  </div>
+  <div class="proj-dropdown" id="projDD">
+    <div id="projDDList"></div>
+    <div class="pd-divider"></div>
+    <div class="pd-add" onclick="openProjModal()">＋ Yeni proje</div>
+  </div>
+  <a class="nav-item" href="index.html" id="nav-genel"><span class="nav-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span>Genel Bakış</a>
+  <a class="nav-item" href="takvim.html" id="nav-takvim"><span class="nav-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>Takvim</a>
+  <div class="sidebar-divider"></div>
+  <a class="nav-item" href="kanban.html" id="nav-kanban"><span class="nav-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="5" height="8" rx="1"/></svg></span>Kanban</a>
+  <a class="nav-item" href="raporlama.html" id="nav-raporlama"><span class="nav-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>Raporlama</a>
+  <a class="nav-item" href="bildirimler.html" id="nav-bildirimler"><span class="nav-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>Bildirimler<span class="nav-badge" id="navBadge">0</span></a>
+  <div class="sidebar-divider"></div>
+  <a class="nav-item active" href="yonetim.html" id="nav-yonetim"><span class="nav-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></span>Yönetim Paneli</a>
+  <div class="sidebar-footer">
+    <a class="nav-item" href="ayarlar.html" id="nav-ayarlar"><span class="nav-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg></span>Ayarlar</a>
+  </div>
+</aside>
+
+<main class="main"><div class="page">
+
+<div class="pg-header">
+  <div><div class="pg-title">Yönetim Paneli</div><div class="pg-sub">Kullanıcı ve deadline yönetimi</div></div>
+</div>
+
+<div class="mgmt-layout">
+
+  <!-- SOL: KULLANICI YÖNETİMİ -->
+  <div class="mgmt-col">
+
+    <!-- Kullanıcı Ekle -->
+    <div class="mgmt-section">
+      <h3>Kullanıcı Ekle</h3>
+      <div class="form-stack">
+        <input class="mgmt-input" id="newUsername" placeholder="Kullanıcı adı">
+        <input class="mgmt-input" id="newPassword" type="password" placeholder="Şifre">
+        <div class="form-row2">
+          <input class="mgmt-input" id="newRole" placeholder="Rol (ör: backend)">
+          <select class="mgmt-input" id="newProjId">
+            <option value="">Proje seç (opsiyonel)</option>
+          </select>
+        </div>
+        <button class="mgmt-btn primary" onclick="addUser()">Kullanıcı Oluştur</button>
+      </div>
+    </div>
+
+    <!-- Kullanıcı Listesi -->
+    <div class="mgmt-section">
+      <h3>Kullanıcılar</h3>
+      <div class="search-box">
+        <input class="mgmt-input" id="userSearchInput" placeholder="Kullanıcı ara..." oninput="filterUsers()">
+      </div>
+      <div id="userListEl"></div>
+      <div id="userPagination"></div>
+    </div>
+
+  </div>
+
+  <!-- SAĞ: DEADLINE YÖNETİMİ -->
+  <div class="mgmt-col">
+
+    <!-- Deadline Ekle -->
+    <div class="mgmt-section">
+      <h3>Deadline Ekle</h3>
+      <div class="form-stack">
+        <input class="mgmt-input" id="dlTitle" placeholder="Başlık">
+        <div class="form-row2">
+          <input class="mgmt-input" id="dlRole" placeholder="Hedef rol (ör: backend)">
+          <input class="mgmt-input" id="dlDate" type="date">
+        </div>
+        <input class="mgmt-input" id="dlDesc" placeholder="Açıklama (opsiyonel)">
+        <button class="mgmt-btn primary" onclick="addDeadline()">Deadline Ekle</button>
+      </div>
+    </div>
+
+    <!-- Deadline Listesi -->
+    <div class="mgmt-section">
+      <h3>Tüm Deadlinelar</h3>
+      <div id="deadlineList"><div style="color:var(--fg2);font-size:0.85rem;">Yükleniyor...</div></div>
+    </div>
+
+    <!-- Görev Deadline'ları -->
+    <div class="mgmt-section">
+      <h3>Görev Deadline'ları</h3>
+      <div id="taskDeadlineList"><div style="color:var(--fg2);font-size:0.85rem;">Yükleniyor...</div></div>
+    </div>
+
+  </div>
+</div>
+
+</div></main>
+</div>
+
+<!-- PROJE MODAL -->
+<div class="modal-backdrop" id="projModalBg">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Yeni Proje</div><div class="modal-close" onclick="closeProjModal()">✕</div></div>
+    <div class="field-row"><label class="field-label">Ad *</label><input class="field-input" type="text" id="pName" placeholder="Proje adı..."></div>
+    <div class="field-row"><label class="field-label">Renk</label><select class="field-select" id="pColor"><option value="#2d5299">Lacivert</option><option value="#8b5cf6">Mor</option><option value="#00c875">Yeşil</option><option value="#f59e0b">Amber</option><option value="#f43f5e">Kırmızı</option></select></div>
+    <div class="modal-footer"><button class="btn btn-ghost btn-sm" onclick="closeProjModal()">İptal</button><button class="btn btn-primary btn-sm" onclick="createProj()">Oluştur</button></div>
+  </div>
+</div>
+
+<div class="toast-stack" id="toastStack"></div>
+<script src="shared.js"></script>
+<script>
+const PAGE_SIZE = 5;
+let allUsers = [];
+let filteredUsers = [];
+let currentPage = 1;
+
+document.addEventListener('DOMContentLoaded', async () => {
+  applyTheme(getTheme());
+  renderUserPill();
+  updateBadge();
+  await renderProjDD();
+  loadProjSelect();
+  loadUsers();
+  loadDeadlines();
+  loadTaskDeadlines();
+});
+
+// ── PROJE MODAL ──
+function openProjModal() {
+  document.getElementById('projDD').classList.remove('show');
+  document.getElementById('pName').value = '';
+  document.getElementById('projModalBg').classList.add('open');
+}
+function closeProjModal() { document.getElementById('projModalBg').classList.remove('open'); }
+window.createProj = async () => {
+  const name  = document.getElementById('pName').value.trim();
+  if (!name) { toast('Proje adı gerekli!', 'error'); return; }
+  const color = document.getElementById('pColor').value;
+  const user  = JSON.parse(localStorage.getItem('user') || '{}');
+  const res = await fetch(`${API}/projects`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, color, created_by: user.id })
+  });
+  const proj = await res.json();
+  ST.setActiveProj(proj.id);
+  renderProjDD();
+  closeProjModal();
+  loadProjSelect();
+  toast(name + ' oluşturuldu', 'success');
+};
+document.getElementById('projModalBg').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeProjModal();
+});
+
+// ── PROJE SELECT DOLDUR ──
+async function loadProjSelect() {
+  const res = await fetch(`${API}/projects`);
+  const projects = await res.json();
+  const sel = document.getElementById('newProjId');
+  sel.innerHTML = '<option value="">Proje seç (opsiyonel)</option>' +
+    projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+}
+
+// ── KULLANICI YÜKLE ──
+async function loadUsers() {
+  try {
+    const res = await fetch(`${API}/users`);
+    allUsers = await res.json();
+    filteredUsers = allUsers;
+    currentPage = 1;
+    renderUserList();
+  } catch {
+    document.getElementById('userListEl').innerHTML = '<div style="color:var(--fg2);">Bağlantı hatası</div>';
+  }
+}
+
+// ── KULLANICI LİSTESİ ──
+async function renderUserList() {
+  const el = document.getElementById('userListEl');
+  const pagination = document.getElementById('userPagination');
+  const totalPages = Math.ceil(filteredUsers.length / PAGE_SIZE);
+
+  if (!filteredUsers.length) {
+    el.innerHTML = '<div style="color:var(--fg2);font-size:0.85rem;">Kullanıcı bulunamadı</div>';
+    pagination.innerHTML = '';
+    return;
+  }
+
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const pageUsers = filteredUsers.slice(start, start + PAGE_SIZE);
+
+  // Her kullanıcı için projeleri çek
+  const projRes = await fetch(`${API}/projects`);
+  const allProjects = await projRes.json();
+
+  el.innerHTML = pageUsers.map(u => `
+    <div class="user-row">
+      <div class="user-av-sm">${u.username.slice(0,2).toUpperCase()}</div>
+      <div class="user-info-col">
+        <div class="user-name-text">${u.username}</div>
+        <div class="user-role-text">${u.role}</div>
+      </div>
+      <div class="user-row-actions">
+        <select class="mgmt-input" id="proj-sel-${u.id}" style="width:110px;padding:0.3rem 0.5rem;">
+          <option value="">Proje...</option>
+          ${allProjects.map(p => `<option value="${p.id}">${p.name}</option>`).join('')}
+        </select>
+        <button class="mgmt-btn small" onclick="addUserToProject(${u.id})">＋</button>
+        <button class="mgmt-btn small" onclick="showUserProjects(${u.id},'${u.username}')">Proj.</button>
+        <button class="mgmt-btn danger" onclick="deleteUser(${u.id},'${u.username}')">Sil</button>
+      </div>
+    </div>
+  `).join('');
+
+  pagination.innerHTML = totalPages > 1 ? `
+    <div class="pagination">
+      <button class="mgmt-btn small" onclick="goPage(-1)" ${currentPage===1?'disabled':''}>‹</button>
+      <span>${currentPage}/${totalPages}</span>
+      <button class="mgmt-btn small" onclick="goPage(1)" ${currentPage===totalPages?'disabled':''}>›</button>
+      <span>(${filteredUsers.length})</span>
+    </div>` : '';
+}
+
+function goPage(dir) {
+  const totalPages = Math.ceil(filteredUsers.length / PAGE_SIZE);
+  currentPage = Math.min(Math.max(1, currentPage + dir), totalPages);
+  renderUserList();
+}
+
+function filterUsers() {
+  const q = document.getElementById('userSearchInput').value.toLowerCase().trim();
+  filteredUsers = !q ? allUsers : allUsers.filter(u =>
+    u.username.toLowerCase().includes(q) || u.role.toLowerCase().includes(q)
+  );
+  currentPage = 1;
+  renderUserList();
+}
+
+// ── KULLANICI EKLE ──
+async function addUser() {
+  const username = document.getElementById('newUsername').value.trim();
+  const password = document.getElementById('newPassword').value.trim();
+  const role     = document.getElementById('newRole').value.trim();
+  const projId   = document.getElementById('newProjId').value;
+  if (!username || !password || !role) { toast('Tüm alanları doldurun', 'error'); return; }
+
+  const res = await fetch(`${API}/users`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password, role })
+  });
+  if (!res.ok) { toast('Eklenemedi', 'error'); return; }
+  const newUser = await res.json();
+
+  // Proje seçildiyse ekle
+  if (projId) {
+    await fetch(`${API}/users/${newUser.id}/projects`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ project_id: parseInt(projId) })
+    });
+  }
+
+  toast(`${username} eklendi`, 'success');
+  document.getElementById('newUsername').value = '';
+  document.getElementById('newPassword').value = '';
+  document.getElementById('newRole').value = '';
+  document.getElementById('newProjId').value = '';
+  loadUsers();
+}
+
+// ── KULLANICI SİL ──
+async function deleteUser(id, username) {
+  if (!confirm(`"${username}" silinsin mi?`)) return;
+  const res = await fetch(`${API}/users/${id}`, { method: 'DELETE' });
+  if (res.ok) { toast(`${username} silindi`, 'success'); loadUsers(); }
+}
+
+// ── PROJE EKLE/ÇIKAR ──
+async function addUserToProject(userId) {
+  const projId = document.getElementById(`proj-sel-${userId}`).value;
+  if (!projId) { toast('Proje seç!', 'error'); return; }
+  await fetch(`${API}/users/${userId}/projects`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ project_id: parseInt(projId) })
+  });
+  toast('Projeye eklendi', 'success');
+}
+
+async function showUserProjects(userId, username) {
+  const res = await fetch(`${API}/users/${userId}/projects`);
+  const projects = await res.json();
+  if (!projects.length) { toast(`${username} henüz bir projede değil`, 'info'); return; }
+  const names = projects.map(p => p.name).join(', ');
+  toast(`${username}: ${names}`, 'info');
+}
+
+// ── DEADLİNE YÜKLE ──
+async function loadDeadlines() {
+  try {
+    const res = await fetch(`${API}/deadlines?role=admin`);
+    const deadlines = await res.json();
+    renderDeadlines(deadlines);
+  } catch {
+    document.getElementById('deadlineList').innerHTML = '<div style="color:var(--fg2);">Bağlantı hatası</div>';
+  }
+}
+
+function renderDeadlines(deadlines) {
+  const el = document.getElementById('deadlineList');
+  if (!deadlines.length) {
+    el.innerHTML = '<div style="color:var(--fg2);font-size:0.85rem;">Henüz deadline eklenmedi.</div>';
+    return;
+  }
+  const today = new Date().toISOString().split('T')[0];
+  el.innerHTML = deadlines.map(d => {
+    const dateStr = d.due_date ? d.due_date.split('T')[0] : '';
+    const overdue = dateStr && dateStr < today;
+    return `
+    <div class="dl-card">
+      <div class="dl-card-top">
+        <div>
+          <div class="dl-card-title">${d.title}</div>
+          <div class="dl-card-meta">Hedef: <strong>${d.assigned_role}</strong>${d.description ? ' · ' + d.description : ''}</div>
+        </div>
+        <button class="mgmt-btn danger" onclick="deleteDeadline(${d.id})">Sil</button>
+      </div>
+      <div class="dl-card-footer">
+        <span class="dl-date ${overdue ? 'overdue' : ''}">${formatDate(d.due_date)}</span>
+        <div class="dl-edit-row">
+          <input type="date" id="dl-edit-${d.id}" value="${dateStr}">
+          <button class="mgmt-btn small" onclick="updateDeadline(${d.id})">Güncelle</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── DEADLİNE EKLE ──
+async function addDeadline() {
+  const title         = document.getElementById('dlTitle').value.trim();
+  const assigned_role = document.getElementById('dlRole').value.trim();
+  const due_date      = document.getElementById('dlDate').value;
+  const description   = document.getElementById('dlDesc').value.trim();
+  const user          = JSON.parse(localStorage.getItem('user') || '{}');
+  if (!title || !assigned_role || !due_date) { toast('Başlık, rol ve tarih zorunlu', 'error'); return; }
+  const res = await fetch(`${API}/deadlines`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title, description, due_date, assigned_role, created_by: user.id })
+  });
+  if (res.ok) {
+    toast('Deadline eklendi', 'success');
+    document.getElementById('dlTitle').value = '';
+    document.getElementById('dlRole').value  = '';
+    document.getElementById('dlDate').value  = '';
+    document.getElementById('dlDesc').value  = '';
+    loadDeadlines();
+  } else { toast('Eklenemedi', 'error'); }
+}
+
+// ── DEADLİNE GÜNCELLE ──
+async function updateDeadline(id) {
+  const due_date = document.getElementById(`dl-edit-${id}`).value;
+  if (!due_date) { toast('Tarih seç', 'error'); return; }
+  const res = await fetch(`${API}/deadlines/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ due_date })
+  });
+  if (res.ok) { toast('Güncellendi', 'success'); loadDeadlines(); }
+  else { toast('Güncellenemedi', 'error'); }
+}
+
+// ── DEADLİNE SİL ──
+async function deleteDeadline(id) {
+  if (!confirm('Deadline silinsin mi?')) return;
+  const res = await fetch(`${API}/deadlines/${id}`, { method: 'DELETE' });
+  if (res.ok) { toast('Silindi', 'success'); loadDeadlines(); }
+}
+
+// ── GÖREV DEADLİNELARI ──
+async function loadTaskDeadlines() {
+  try {
+    const projRes = await fetch(`${API}/projects`);
+    const projects = await projRes.json();
+
+    let allTasks = [];
+    for (const p of projects) {
+      const res = await fetch(`${API}/tasks?project_id=${p.id}`);
+      const tasks = await res.json();
+      tasks.forEach(t => t._projName = p.name);
+      allTasks = allTasks.concat(tasks);
+    }
+
+    // Sadece deadline'ı olanlar
+    const withDl = allTasks.filter(t => t.deadline).sort((a,b) => a.deadline > b.deadline ? 1 : -1);
+    renderTaskDeadlines(withDl);
+  } catch {
+    document.getElementById('taskDeadlineList').innerHTML = '<div style="color:var(--fg2);">Bağlantı hatası</div>';
+  }
+}
+
+function renderTaskDeadlines(tasks) {
+  const el = document.getElementById('taskDeadlineList');
+  if (!tasks.length) {
+    el.innerHTML = '<div style="color:var(--fg2);font-size:0.85rem;">Deadline\'lı görev yok.</div>';
+    return;
+  }
+  const today = new Date().toISOString().split('T')[0];
+  el.innerHTML = tasks.map(t => {
+    const dateStr = t.deadline ? t.deadline.split('T')[0] : '';
+    const overdue = dateStr && dateStr < today;
+    return `
+    <div class="dl-card">
+      <div class="dl-card-top">
+        <div>
+          <div class="dl-card-title">${t.title}</div>
+          <div class="dl-card-meta">${t._projName} · <span class="pill ${t.tag}" style="font-size:10px;padding:1px 6px;">${TAG_NAMES[t.tag]||t.tag}</span></div>
+        </div>
+        <span class="dl-date ${overdue ? 'overdue' : ''}">${dateStr}</span>
+      </div>
+      <div class="dl-edit-row">
+        <input type="date" id="tdl-edit-${t.id}" value="${dateStr}">
+        <button class="mgmt-btn small" onclick="updateTaskDeadline(${t.id})">Güncelle</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function updateTaskDeadline(id) {
+  const deadline = document.getElementById(`tdl-edit-${id}`).value || null;
+  const res = await fetch(`${API}/tasks/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ deadline })
+  });
+  if (res.ok) { toast('Güncellendi', 'success'); loadTaskDeadlines(); }
+  else { toast('Güncellenemedi', 'error'); }
+}
+
+function formatDate(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleDateString('tr-TR', { day: '2-digit', month: 'long', year: 'numeric' });
+}
+
+applyTheme(getTheme());
+renderUserPill();
+document.addEventListener('DOMContentLoaded', async () => {
+  updateBadge();
+  renderChat();
+  await renderProjDD();
+  renderOverview();
+  loadTagOptions();
+});
+</script>
+</body>
+</html>

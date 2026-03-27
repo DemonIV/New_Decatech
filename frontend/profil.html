@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Profilim — DECATECH</title>
+<link rel="stylesheet" href="shared.css">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  .profile-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+  .profile-avatar {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-size: 1.6rem;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 1.25rem;
+  }
+  .profile-name {
+    text-align: center;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--fg);
+    margin-bottom: 0.25rem;
+  }
+  .profile-role {
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--fg2);
+    margin-bottom: 1.5rem;
+  }
+  .role-pill {
+    display: inline-block;
+    padding: 0.2rem 0.7rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: var(--violet, #8b5cf6);
+    color: #fff;
+  }
+  .role-pill.user { background: var(--accent2, #3b82f6); }
+  .profile-divider { border: none; border-top: 1px solid var(--border); margin: 1.25rem 0; }
+  .profile-field { margin-bottom: 1rem; }
+  .profile-field label {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--fg2);
+    font-weight: 500;
+    margin-bottom: 0.3rem;
+  }
+  .profile-field input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--fg);
+    font-family: 'Geist', sans-serif;
+    font-size: 0.85rem;
+    box-sizing: border-box;
+  }
+  .profile-field input:focus { outline: none; border-color: var(--accent); }
+  .profile-field input:disabled { opacity: 0.5; cursor: not-allowed; }
+  .profile-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    font-size: 0.85rem;
+  }
+  .profile-info-row .label { color: var(--fg2); }
+  .profile-info-row .value { color: var(--fg); font-weight: 500; }
+  .btn-full {
+    width: 100%; padding: 0.6rem;
+    border: none; border-radius: 6px;
+    cursor: pointer; font-family: 'Geist', sans-serif;
+    font-size: 0.85rem; font-weight: 500;
+    margin-top: 0.5rem;
+  }
+  .btn-primary-full { background: var(--accent); color: #fff; }
+  .btn-primary-full:hover { opacity: 0.85; }
+  .btn-danger-full { background: transparent; border: 1px solid var(--red,#ef4444); color: var(--red,#ef4444); margin-top: 0.75rem; }
+  .btn-danger-full:hover { background: var(--red,#ef4444); color: #fff; }
+  .section-title { font-size: 0.82rem; font-weight: 600; color: var(--fg2); margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="logo-wrap">
+    <span class="logo-proj" id="topbarProjName">Proje X</span>
+  </div>
+  <div class="topbar-right">
+    <div class="theme-toggle" id="themeToggleBtn" onclick="toggleTheme()">🌙</div>
+    <div class="topbar-divider"></div>
+    <div class="user-pill">
+      <div class="user-av" id="userPillAv">AY</div>
+      <div class="user-name" id="userPillName">Kullanıcı</div>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+<aside class="sidebar">
+  <div class="proj-switcher-row" onclick="toggleProjDD()">
+    <div class="proj-color-dot" id="projColorDot"></div>
+    <div class="proj-switcher-name" id="sidebarProjName">Proje X</div>
+    <div class="proj-switcher-chevron" id="projChevron">⌄</div>
+  </div>
+  <div class="proj-dropdown" id="projDD">
+    <div id="projDDList"></div>
+    <div class="pd-divider"></div>
+    <div class="pd-add" onclick="openProjModal()">＋ Yeni proje</div>
+  </div>
+  <a class="nav-item" href="index.html" id="nav-genel"><span class="nav-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span>Genel Bakış</a>
+  <a class="nav-item" href="takvim.html" id="nav-takvim"><span class="nav-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>Takvim</a>
+  <div class="sidebar-divider"></div>
+  <a class="nav-item" href="kanban.html" id="nav-kanban"><span class="nav-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="5" height="8" rx="1"/></svg></span>Kanban</a>
+  <a class="nav-item" href="raporlama.html" id="nav-raporlama"><span class="nav-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>Raporlama</a>
+  <a class="nav-item" href="bildirimler.html" id="nav-bildirimler"><span class="nav-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></span>Bildirimler<span class="nav-badge" id="navBadge">0</span></a>
+  <div class="sidebar-divider"></div>
+  
+    <!-- YÖNETİM PANELİ (sadece admin) -->
+  <a class="nav-item" href="yonetim.html" id="nav-yonetim" style="display:none;">
+    <span class="nav-icon">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+      </svg>
+    </span>
+    Yönetim Paneli
+  </a>
+  
+  <div class="sidebar-footer">
+    <a class="nav-item" href="ayarlar.html" id="nav-ayarlar"><span class="nav-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg></span>Ayarlar</a>
+    <a class="nav-item" href="yonetim.html" id="nav-yonetim" style="display:none;"><span class="nav-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></span>Yönetim Paneli</a>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="page">
+    <div class="pg-header">
+      <div>
+        <div class="pg-title">Profilim</div>
+        <div class="pg-sub">Hesap bilgilerinizi görüntüleyin</div>
+      </div>
+    </div>
+
+    <div class="profile-card">
+
+      <!-- Avatar + İsim -->
+      <div class="profile-avatar" id="profileAvatar">AY</div>
+      <div class="profile-name" id="profileName">Kullanıcı</div>
+      <div class="profile-role">
+        <span class="role-pill" id="profileRolePill">user</span>
+      </div>
+
+      <hr class="profile-divider">
+
+      <!-- Bilgiler -->
+      <div class="section-title">Hesap Bilgileri</div>
+      <div class="profile-info-row">
+        <span class="label">Kullanıcı Adı</span>
+        <span class="value" id="infoUsername">—</span>
+      </div>
+      <div class="profile-info-row">
+        <span class="label">Rol</span>
+        <span class="value" id="infoRole">—</span>
+      </div>
+      <div class="profile-info-row">
+        <span class="label">Kullanıcı ID</span>
+        <span class="value" id="infoId">—</span>
+      </div>
+      <div class="profile-info-row">
+        <span class="label">Oturum başlangıcı</span>
+        <span class="value" id="infoSession">—</span>
+      </div>
+
+      <hr class="profile-divider">
+
+      <!-- Şifre Değiştir -->
+      <div class="section-title">Şifre Değiştir</div>
+      <div class="profile-field">
+         <label>Mevcut Şifre</label>
+         <input type="password" id="currentPass" placeholder="Mevcut şifrenizi girin">
+      </div>
+      <div class="profile-field">
+         <label>Yeni Şifre</label>
+         <input type="password" id="newPass" placeholder="Yeni şifre girin">
+      </div>
+      <div class="profile-field">
+         <label>Şifre Tekrar</label>
+         <input type="password" id="newPass2" placeholder="Şifreyi tekrar girin">
+      </div>
+      <button class="btn-full btn-primary-full" onclick="changePassword()">Şifreyi Güncelle</button>
+
+      <hr class="profile-divider">
+
+      <!-- Çıkış -->
+      <button class="btn-full btn-danger-full" onclick="logout()">Çıkış Yap</button>
+
+    </div>
+  </div>
+</main>
+</div>
+
+<!-- PROJE MODAL -->
+<div class="modal-backdrop" id="projModalBg">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Yeni Proje</div><div class="modal-close" onclick="closeProjModal()">✕</div></div>
+    <div class="field-row"><label class="field-label">Ad *</label><input class="field-input" type="text" id="pName" placeholder="Proje adı..."></div>
+    <div class="field-row"><label class="field-label">Renk</label><select class="field-select" id="pColor"><option value="#2d5299">Lacivert</option><option value="#8b5cf6">Mor</option><option value="#00c875">Yeşil</option><option value="#f59e0b">Amber</option><option value="#f43f5e">Kırmızı</option></select></div>
+    <div class="modal-footer"><button class="btn btn-ghost btn-sm" onclick="closeProjModal()">İptal</button><button class="btn btn-primary btn-sm" onclick="createProj()">Oluştur</button></div>
+  </div>
+</div>
+
+<div class="toast-stack" id="toastStack"></div>
+
+<script src="shared.js"></script>
+<script>
+const API = 'http://localhost:3000';
+
+document.addEventListener('DOMContentLoaded', () => {
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  if (!user.id) { window.location.href = 'login.html'; return; }
+
+ applyTheme(getTheme());
+ renderUserPill();
+ document.addEventListener('DOMContentLoaded', async () => {
+  updateBadge();
+  renderChat();
+  await renderProjDD();
+  renderOverview();
+  loadTagOptions();
+});
+
+  // Admin kontrolü
+  if (user.role === 'admin') {
+    document.getElementById('nav-yonetim').style.display = 'flex';
+  }
+
+  // Avatar
+  const initials = (user.username || 'U').slice(0, 2).toUpperCase();
+  document.getElementById('profileAvatar').textContent = initials;
+  document.getElementById('userPillAv').textContent = initials;
+  document.getElementById('userPillName').textContent = user.username || 'Kullanıcı';
+
+  // Bilgiler
+  document.getElementById('profileName').textContent = user.username || 'Kullanıcı';
+  document.getElementById('infoUsername').textContent = user.username || '—';
+  document.getElementById('infoRole').textContent = user.role || '—';
+  document.getElementById('infoId').textContent = '#' + (user.id || '—');
+  document.getElementById('infoSession').textContent = new Date().toLocaleString('tr-TR');
+
+  // Rol pill
+  const pill = document.getElementById('profileRolePill');
+  pill.textContent = user.role || 'user';
+  if (user.role !== 'admin') pill.classList.add('user');
+});
+
+function openProjModal() {
+  document.getElementById('projDD').classList.remove('show');
+  document.getElementById('pName').value = '';
+  document.getElementById('projModalBg').classList.add('open');
+}
+function closeProjModal() { document.getElementById('projModalBg').classList.remove('open'); }
+window.createProj = async () => {
+  const name  = document.getElementById('pName').value.trim();
+  if (!name) { toast('Proje adı gerekli!', 'error'); return; }
+  const color = document.getElementById('pColor').value;
+  const user  = JSON.parse(localStorage.getItem('user') || '{}');
+
+  const res = await fetch(`${API}/projects`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, color, created_by: user.id })
+  });
+  const proj = await res.json();
+  ST.setActiveProj(proj.id);
+  renderProjDD();
+  document.getElementById('projModalBg').classList.remove('open');
+  toast(name + ' oluşturuldu', 'success');
+};
+
+async function changePassword() {
+  const current = document.getElementById('currentPass').value.trim();
+  const p1 = document.getElementById('newPass').value.trim();
+  const p2 = document.getElementById('newPass2').value.trim();
+
+  if (!current || !p1 || !p2) { toast('Tüm alanları doldurun', 'error'); return; }
+  if (p1 !== p2) { toast('Şifreler eşleşmiyor', 'error'); return; }
+  if (p1.length < 4) { toast('Şifre en az 4 karakter olmalı', 'error'); return; }
+
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+  // Önce mevcut şifreyi doğrula
+  try {
+    const checkRes = await fetch(`${API}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: user.username, password: current })
+    });
+    if (!checkRes.ok) { toast('Mevcut şifre hatalı', 'error'); return; }
+  } catch {
+    toast('Sunucuya bağlanılamadı', 'error');
+    return;
+  }
+
+  // Şifreyi güncelle
+  try {
+    const res = await fetch(`${API}/users/${user.id}/password`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: p1 })
+    });
+    if (res.ok) {
+      toast('Şifre güncellendi', 'success');
+      document.getElementById('currentPass').value = '';
+      document.getElementById('newPass').value = '';
+      document.getElementById('newPass2').value = '';
+    } else {
+      toast('Güncelleme başarısız', 'error');
+    }
+  } catch {
+    toast('Sunucuya bağlanılamadı', 'error');
+  }
+}
+
+function logout() {
+  localStorage.removeItem('user');
+  window.location.href = 'login.html';
+}
+</script>
+</body>
+</html>
