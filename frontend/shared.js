@@ -426,7 +426,7 @@ function normalizeRole(role) {
 
 window.loadTagOptions = async () => {
   try {
-    const res = await fetch(`${API}/roles`);
+    const res = await fetch(`${API}/users/roles/all`);
     const roles = await res.json();
     const options = roles.map(role => {
       const color = ROLE_COLORS[normalizeRole(role)] || 'pill-blue';

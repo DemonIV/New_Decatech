@@ -303,7 +303,7 @@ async function changePassword() {
 
   // Önce mevcut şifreyi doğrula
   try {
-    const checkRes = await fetch(`${API}/login`, {
+    const checkRes = await fetch(`${API}/users/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: user.username, password: current })
