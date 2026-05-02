@@ -495,7 +495,7 @@ window.renderProjectInsights = (tasks = []) => {
   `).join('');
 
   el.innerHTML = `
-    <div class="insight-card" style="cursor:pointer;" onclick="alert('Sağlık Puanı Hesaplanışı:\\n\\nTemel Puan: %' + Math.round(${insights.completion}) + '\\n- Geciken görev başına 8 puan ceza (' + ${insights.overdue.length} + ' * 8)\\n- Kritik açık görev başına 4 puan ceza (' + ${insights.highPriorityOpen.length} + ' * 4)\\n- Sorumlusuz görev başına 2 puan ceza (' + ${insights.unassigned.length} + ' * 2)\\n\\nToplam Sağlık Puanı: ' + ${insights.healthScore} + ' Puan')">
+    <div class="insight-card" style="cursor:pointer;" onclick="showHealthModal(${JSON.stringify(insights).replace(/"/g, '&quot;')})">
       <div class="insight-head">
         <div class="insight-title" style="text-decoration: underline dashed; text-underline-offset: 4px;">Proje Sağlığı ℹ️</div>
         <span class="risk-pill ${healthClass}">${healthLabel}</span>
@@ -504,7 +504,7 @@ window.renderProjectInsights = (tasks = []) => {
       <div class="health-label">%${insights.completion} tamamlanma, ${insights.activeTasks.length} aktif görev</div>
       <div class="health-meter"><div class="health-meter-fill" style="width:${insights.healthScore}%;background:${healthColor}"></div></div>
     </div>
-    <div class="insight-card" style="cursor:pointer;" onclick="alert('Risk Özeti Kriterleri:\\n\\n- Geciken Görev: Bitiş tarihi geçmiş olan açık görevler.\\n- Kritik Açık Görev: Önceliği Yüksek (Kırmızı) olan ancak henüz tamamlanmamış görevler.\\n- Sorumlusuz Görev: Herhangi bir kişiye atanmamış, sahipsiz görevler.')">
+    <div class="insight-card" style="cursor:pointer;" onclick="showRiskModal()">
       <div class="insight-head"><div class="insight-title" style="text-decoration: underline dashed; text-underline-offset: 4px;">Risk Özeti ℹ️</div></div>
       <div class="insight-list">
         <div class="insight-row"><span>Geciken görev</span><strong>${insights.overdue.length}</strong></div>
@@ -519,6 +519,87 @@ window.renderProjectInsights = (tasks = []) => {
       </div>
     </div>
   `;
+};
+
+// ── Custom Detail Modals ──
+window.showHealthModal = (insights) => {
+  const content = `
+    <div style="font-size:14px; line-height:1.6; color:var(--fg);">
+      <p style="margin-bottom:15px; color:var(--text2);">Sağlık puanı, projenin tamamlanma oranından riskli görevlerin cezalarının düşülmesiyle hesaplanır.</p>
+      <div style="background:var(--surface2); padding:15px; border-radius:10px; margin-bottom:15px;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+          <span>Temel Puan (Tamamlanma)</span>
+          <span style="font-weight:600; color:var(--green);">+%${Math.round(insights.completion)}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+          <span>Geciken Görev Cezası (${insights.overdue.length} x 8)</span>
+          <span style="font-weight:600; color:var(--red);">-${insights.overdue.length * 8}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+          <span>Kritik Açık Görev Cezası (${insights.highPriorityOpen.length} x 4)</span>
+          <span style="font-weight:600; color:var(--red);">-${insights.highPriorityOpen.length * 4}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <span>Sorumlusuz Görev Cezası (${insights.unassigned.length} x 2)</span>
+          <span style="font-weight:600; color:var(--red);">-${insights.unassigned.length * 2}</span>
+        </div>
+        <hr style="border:0; border-top:1px solid var(--border); margin:12px 0;">
+        <div style="display:flex; justify-content:space-between; font-size:16px; font-weight:700;">
+          <span>Toplam Sağlık Puanı</span>
+          <span style="color:var(--accent1);">${insights.healthScore}</span>
+        </div>
+      </div>
+      <p style="font-size:12px; color:var(--text3);">* Puan ne kadar yüksekse projenin risk seviyesi o kadar düşüktür.</p>
+    </div>
+  `;
+  openInfoModal('Proje Sağlığı Detayları', content);
+};
+
+window.showRiskModal = () => {
+  const content = `
+    <div style="font-size:14px; line-height:1.6; color:var(--fg);">
+      <div class="k-card" style="margin-bottom:10px; padding:12px; border-left:4px solid var(--red);">
+        <strong style="display:block; margin-bottom:4px;">Geciken Görev</strong>
+        <span style="color:var(--text2);">Bitiş tarihi (deadline) geçmiş olmasına rağmen hala "Tamamlandı" sütununa taşınmamış işlerdir.</span>
+      </div>
+      <div class="k-card" style="margin-bottom:10px; padding:12px; border-left:4px solid var(--amber);">
+        <strong style="display:block; margin-bottom:4px;">Kritik Açık Görev</strong>
+        <span style="color:var(--text2);">Önceliği "Yüksek" (Kırmızı) olarak belirlenmiş ancak henüz bitirilmemiş işlerdir.</span>
+      </div>
+      <div class="k-card" style="padding:12px; border-left:4px solid var(--violet);">
+        <strong style="display:block; margin-bottom:4px;">Sorumlusuz Görev</strong>
+        <span style="color:var(--text2);">Herhangi bir ekip üyesine atanmamış, sahipsiz kalan görevlerdir.</span>
+      </div>
+    </div>
+  `;
+  openInfoModal('Risk Özeti Kriterleri', content);
+};
+
+window.openInfoModal = (title, contentHtml) => {
+  let modal = document.getElementById('infoModalBg');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'infoModalBg';
+    modal.className = 'modal-backdrop';
+    modal.innerHTML = `
+      <div class="modal">
+        <div class="modal-header">
+          <div class="modal-title" id="infoModalTitle"></div>
+          <div class="modal-close" onclick="document.getElementById('infoModalBg').classList.remove('open')">✕</div>
+        </div>
+        <div class="modal-body" id="infoModalBody" style="padding:20px;"></div>
+        <div class="modal-footer">
+          <button class="btn btn-primary btn-sm" onclick="document.getElementById('infoModalBg').classList.remove('open')">Anladım</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', (e) => { if(e.target === modal) modal.classList.remove('open'); });
+  }
+  
+  document.getElementById('infoModalTitle').textContent = title;
+  document.getElementById('infoModalBody').innerHTML = contentHtml;
+  modal.classList.add('open');
 };
 
 window.openEditTask = function(id) {
