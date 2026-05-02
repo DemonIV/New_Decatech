@@ -7,14 +7,21 @@ router.post("/", async (req, res) => {
   try {
     const { username, password, role } = req.body;
 
-    await client.query(
-      "INSERT INTO users (username, password, role) VALUES ($1,$2,$3)",
+    if (!username || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Kullanıcı adı ve şifre zorunlu",
+      });
+    }
+
+    const result = await client.query(
+      "INSERT INTO users (username, password, role) VALUES ($1,$2,$3) RETURNING id, username, role",
       [username, password, role || "user"]
     );
 
-    res.json({ success: true, message: "Kullanıcı eklendi" });
+    res.status(201).json(result.rows[0]);
   } catch (err) {
-    res.status(503).json({ success: false, message: "DB hatası" });
+    res.status(503).json({ success: false, message: "Kullanıcı eklenemedi" });
   }
 });
 
@@ -24,7 +31,7 @@ router.post("/login", async (req, res) => {
     const { username, password } = req.body;
 
     const result = await client.query(
-      "SELECT * FROM users WHERE username=$1 AND password=$2",
+      "SELECT id, username, role FROM users WHERE username=$1 AND password=$2",
       [username, password]
     );
 

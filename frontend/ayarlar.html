@@ -9,7 +9,7 @@
 </head>
 <body>
 <script>
-const user = localStorage.getItem("user");
+const user = sessionStorage.getItem("user");
 if (!user) {
   window.location.href = "login.html";
 }
@@ -137,7 +137,7 @@ window.createProj = async () => {
   const name  = document.getElementById('pName').value.trim();
   if (!name) { toast('Proje adı gerekli!', 'error'); return; }
   const color = document.getElementById('pColor').value;
-  const user  = JSON.parse(localStorage.getItem('user') || '{}');
+  const user  = getCurrentUser();
 
   const res = await fetch(`${API}/projects`, {
     method: 'POST',
@@ -174,11 +174,15 @@ function saveSettings() {
 applyTheme(getTheme());
 renderUserPill();
 document.addEventListener('DOMContentLoaded', async () => {
+  const user = requireAuth();
+  if (!user) return;
   updateBadge();
   renderChat();
   await renderProjDD();
   renderOverview();
   loadTagOptions();
+  loadSettings();
+  showAdminNav();
 });
 </script>
 </body></html>

@@ -11,7 +11,7 @@
 <body>
 
 <script>
-const user = localStorage.getItem("user");
+const user = sessionStorage.getItem("user");
 if (!user) {
   window.location.href = "login.html";
 }
@@ -128,15 +128,29 @@ if (!user) {
 
   <div class="sidebar-divider"></div>
 
-    <!-- YÖNETİM PANELİ (sadece admin) -->
-  <a class="nav-item" href="yonetim.html" id="nav-yonetim" style="display:none;">
+  <!-- YÖNETİM PANELİ (sadece admin) -->
+  <button class="nav-item admin-nav-trigger" type="button" id="nav-yonetim" style="display:none;" onclick="toggleAdminPanel()">
     <span class="nav-icon">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
       </svg>
     </span>
     Yönetim Paneli
-  </a>
+    <span class="admin-nav-chevron" id="adminPanelChevron">⌄</span>
+  </button>
+
+  <div class="admin-panel" id="adminPanel" style="display:none;">
+    <div class="admin-panel-body" id="adminPanelBody">
+      <div class="admin-section-menu">
+        <button type="button" onclick="openTaskModal('todo')">＋ Görev Ekle</button>
+        <button type="button" onclick="openAdminSection('adminUserCreate')">Kullanıcı Ekle</button>
+        <button type="button" onclick="openAdminSection('adminUsersSection')">Kullanıcılar</button>
+        <button type="button" onclick="openAdminSection('adminDeadlineCreate')">Deadline Ekle</button>
+        <button type="button" onclick="openAdminSection('adminDeadlinesSection')">Deadlinelar</button>
+        <button type="button" onclick="openAdminSection('adminTaskRevise')">Görevi Revize Et</button>
+      </div>
+    </div>
+  </div>
 
   <div class="sidebar-footer">
     <a class="nav-item" href="ayarlar.html" id="nav-ayarlar">
@@ -161,14 +175,69 @@ if (!user) {
         <div class="pg-title" id="pgTitle">Genel Bakış</div>
         <div class="pg-sub" id="pgSub"></div>
       </div>
-      <div class="pg-actions">
-        <a href="kanban.html" class="btn btn-ghost btn-sm">Tüm görevler →</a>
-        <button class="btn btn-primary btn-sm" onclick="openTaskModal('todo')">＋ Görev ekle</button>
-      </div>
     </div>
-    <div class="stats-row" id="statsRow"></div>
-    <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:10px;">Kanban Özeti</div>
-    <div class="kanban" id="overviewBoard"></div>
+    <section class="admin-workspace" id="adminWorkspace" style="display:none;">
+      <div class="admin-workspace-head">
+        <div>
+          <div class="admin-workspace-title" id="adminWorkspaceTitle">Yönetim Paneli</div>
+          <div class="admin-workspace-sub">Sol menüden işlem seçerek yönetim aksiyonlarını buradan yapabilirsiniz.</div>
+        </div>
+      </div>
+
+      <div class="admin-mini-section admin-panel-section" id="adminUserCreate">
+        <div class="admin-mini-title">Kullanıcı Ekle</div>
+        <div class="admin-form-grid">
+          <input class="field-input" id="adminNewName" placeholder="Ad Soyad">
+          <input class="field-input" id="adminNewEmail" type="email" placeholder="E-posta">
+          <input class="field-input" id="adminNewUsername" placeholder="Kullanıcı adı">
+          <input class="field-input" id="adminNewPassword" type="password" placeholder="Şifre">
+          <input class="field-input" id="adminNewRole" placeholder="Rol">
+          <select class="field-select" id="adminNewProjId"></select>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="adminCreateUser()">Kullanıcı Oluştur</button>
+      </div>
+
+      <div class="admin-mini-section admin-panel-section" id="adminUsersSection">
+        <div class="admin-mini-title">Kullanıcılar</div>
+        <div class="admin-mini-list" id="adminUsersList"></div>
+      </div>
+
+      <div class="admin-mini-section admin-panel-section" id="adminDeadlineCreate">
+        <div class="admin-mini-title">Deadline Ekle</div>
+        <div class="admin-form-grid">
+          <input class="field-input" id="adminDlTitle" placeholder="Başlık">
+          <input class="field-input" id="adminDlRole" placeholder="Hedef rol">
+          <input class="field-input" id="adminDlDate" type="date">
+          <input class="field-input" id="adminDlDesc" placeholder="Açıklama">
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="adminCreateDeadline()">Deadline Ekle</button>
+      </div>
+
+      <div class="admin-mini-section admin-panel-section" id="adminDeadlinesSection">
+        <div class="admin-mini-title">Deadlinelar</div>
+        <div class="admin-mini-list" id="adminDeadlinesList"></div>
+      </div>
+
+      <div class="admin-mini-section admin-panel-section" id="adminTaskRevise">
+        <div class="admin-mini-title">Görevi Revize Et</div>
+        <div class="admin-form-grid">
+          <select class="field-select admin-wide" id="adminTaskSelect"></select>
+          <select class="field-select" id="adminTaskCol">
+            <option value="todo">Yapılacak</option>
+            <option value="doing">Devam Ediyor</option>
+            <option value="done">Tamamlandı</option>
+          </select>
+          <input class="field-input" id="adminTaskAssignee" placeholder="Sorumlu">
+          <input class="field-input" id="adminTaskDeadline" type="date">
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="adminReviseTask()">Görevi Güncelle</button>
+      </div>
+    </section>
+    <section id="overviewContent">
+      <div class="stats-row" id="statsRow"></div>
+      <div class="insight-grid" id="projectInsights"></div>
+
+    </section>
 
   </div>
 </main>
@@ -264,7 +333,7 @@ window.createProj = async () => {
   const name  = document.getElementById('pName').value.trim();
   if (!name) { toast('Proje adı gerekli!', 'error'); return; }
   const color = document.getElementById('pColor').value;
-  const user  = JSON.parse(localStorage.getItem('user') || '{}');
+  const user  = getCurrentUser();
 
   const res = await fetch(`${API}/projects`, {
     method: 'POST',
@@ -287,7 +356,7 @@ window.createProj = async () => {
   const name  = document.getElementById('pName').value.trim();
   if (!name) { toast('Proje adı gerekli!', 'error'); return; }
   const color = document.getElementById('pColor').value;
-  const user  = JSON.parse(localStorage.getItem('user') || '{}');
+  const user  = getCurrentUser();
   const res = await fetch(`${API}/projects`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -326,7 +395,7 @@ async function saveTask() {
   const title = document.getElementById('mTitle')?.value.trim();
   if (!title) { toast('Başlık zorunlu!', 'error'); return; }
 
-  const user   = JSON.parse(localStorage.getItem('user') || '{}');
+  const user   = getCurrentUser();
   const projId = parseInt(ST.activeProj) || null;
   const body   = {
     title,
@@ -340,19 +409,33 @@ async function saveTask() {
     created_by:  user.id
   };
 
+  if (body.assignee) {
+    const resU = await fetch(`${API}/users`);
+    const users = await resU.json();
+    const target = users.find(u => (u.initials || u.username || '').slice(0,2).toUpperCase() === body.assignee.slice(0,2));
+    if (target && target.role === 'admin') {
+      toast('Admin kullanıcısına görev atanamaz!', 'error');
+      return;
+    }
+  }
+
   if (_editingTask) {
     await fetch(`${API}/tasks/${_editingTask}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
+    notifyDemoSync('task-updated', body);
     toast('Güncellendi', 'success');
   } else {
-    await fetch(`${API}/tasks`, {
+    const createRes = await fetch(`${API}/tasks`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
+    const createdTask = await createRes.json();
+    await notifyAssignee(createdTask.assignee, createdTask.title);
+    notifyDemoSync('task-created', createdTask);
     toast('Görev eklendi', 'success');
   }
 
@@ -364,6 +447,7 @@ async function delTask(id) {
   if (!confirm('Silinsin mi?')) return;
   await fetch(`${API}/tasks/${id}`, { method: 'DELETE' });
   toast('Silindi', 'info');
+  notifyDemoSync('task-deleted', { id });
   renderOverview();
 }
 
@@ -379,11 +463,113 @@ function colHTML(colId, title, color, tasks) {
   </div>`;
 }
 
+function renderTaskSummary(tasks, actionHtml = '') {
+  const todo  = tasks.filter(t=>t.col==='todo').length;
+  const doing = tasks.filter(t=>t.col==='doing').length;
+  const done  = tasks.filter(t=>t.col==='done').length;
+  const total = tasks.length || 1;
+  const pct   = Math.round(done/total*100);
+
+  document.getElementById('statsRow').innerHTML = `
+    ${actionHtml}
+    <div class="stat-card"><div class="stat-lbl">Toplam Görev</div><div class="stat-val" style="color:var(--accent-light)">${tasks.length}</div><div class="stat-bar"><div class="stat-bar-fill" style="width:100%;background:var(--accent2)"></div></div><div class="stat-foot"><div class="stat-change neutral">ilgili görevler</div></div></div>
+    <div class="stat-card"><div class="stat-lbl">Devam Eden</div><div class="stat-val" style="color:var(--amber)">${doing}</div><div class="stat-bar"><div class="stat-bar-fill" style="width:${doing/total*100}%;background:var(--amber)"></div></div><div class="stat-foot"><div class="stat-change neutral">aktif sprint</div></div></div>
+    <div class="stat-card"><div class="stat-lbl">Tamamlanan</div><div class="stat-val" style="color:var(--green)">${done}</div><div class="stat-bar"><div class="stat-bar-fill" style="width:${pct}%;background:var(--green)"></div></div><div class="stat-foot"><div class="stat-change up">↑ %${pct} tamamlandı</div></div></div>
+    <div class="stat-card"><div class="stat-lbl">Yapılacak</div><div class="stat-val" style="color:var(--violet)">${todo}</div><div class="stat-bar"><div class="stat-bar-fill" style="width:${todo/total*100}%;background:var(--violet)"></div></div><div class="stat-foot"><div class="stat-change neutral">bekliyor</div></div></div>`;
+
+  renderProjectInsights(tasks);
+  document.getElementById('overviewBoard').innerHTML =
+    colHTML('todo','Yapılacak','var(--text2)',tasks) +
+    colHTML('doing','Devam Ediyor','var(--accent-light)',tasks) +
+    colHTML('done','Tamamlandı','var(--green)',tasks);
+}
+
+function tasksForUser(tasks, user) {
+  const initials = String(user.initials || user.username || '').toUpperCase();
+  return tasks.filter((task) => String(task.assignee || '').toUpperCase() === initials);
+}
+
+async function renderAdminCompanyOverview() {
+  const [usersRes, projectsRes, tasksRes] = await Promise.all([
+    fetch(`${API}/users`),
+    fetch(`${API}/projects`),
+    fetch(`${API}/tasks`)
+  ]);
+  const users = await usersRes.json();
+  const projects = await projectsRes.json();
+  const tasks = await tasksRes.json();
+  const userProjectsList = await Promise.all(users.map(async (user) => {
+    const res = await fetch(`${API}/users/${user.id}/projects`);
+    return { userId: user.id, projects: await res.json() };
+  }));
+  const projectsByUser = Object.fromEntries(userProjectsList.map((item) => [item.userId, item.projects]));
+
+  window._adminOverviewUsers = users;
+  window._adminOverviewTasks = tasks;
+  window._adminOverviewProjects = projects;
+  document.getElementById('pgTitle').textContent = 'Şirket Genel Bakışı';
+  document.getElementById('pgSub').textContent = `${users.length} ekip üyesi · ${projects.length} proje · ${tasks.length} görev`;
+  document.getElementById('projectInsights').innerHTML = '';
+  document.getElementById('overviewBoard').innerHTML = '';
+
+  document.getElementById('statsRow').innerHTML = `
+    <div class="employee-grid">
+      ${users.map((user) => {
+        const userTasks = tasksForUser(tasks, user);
+        const activeTasks = userTasks.filter((task) => task.col !== 'done');
+        const projectNames = (projectsByUser[user.id] || []).map((project) => project.name).join(', ') || 'Proje atanmamış';
+        const workSummary = activeTasks.slice(0, 2).map((task) => task.title).join(' · ') || 'Aktif görev bulunmuyor';
+        return `
+          <button class="employee-card" type="button" onclick="renderPersonOverview(${user.id})">
+            <div class="employee-card-top">
+              <div class="employee-avatar">${user.initials || user.username.slice(0, 2).toUpperCase()}</div>
+              <span class="pill ${ROLE_COLORS[normalizeRole(user.role)] || 'pill-blue'}">${user.role}</span>
+            </div>
+            <div class="employee-name">${user.name || user.username}</div>
+            <div class="employee-meta">${projectNames}</div>
+            <div class="employee-work">${workSummary}</div>
+            <div class="employee-foot">${userTasks.length} görev · ${userTasks.filter((task) => task.col === 'done').length} tamamlandı</div>
+          </button>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+window.renderPersonOverview = async (userId) => {
+  window._currentPersonOverviewId = userId;
+  const users = window._adminOverviewUsers || await (await fetch(`${API}/users`)).json();
+  const allTasks = window._adminOverviewTasks || await (await fetch(`${API}/tasks`)).json();
+  const user = users.find((item) => item.id === Number(userId));
+  if (!user) return;
+
+  const projectRes = await fetch(`${API}/users/${user.id}/projects`);
+  const projects = await projectRes.json();
+  const tasks = tasksForUser(allTasks, user);
+
+  document.getElementById('pgTitle').textContent = `${user.name || user.username} — Genel Bakış`;
+  document.getElementById('pgSub').textContent = `${user.role} · ${projects.map((project) => project.name).join(', ') || 'Proje atanmamış'}`;
+  renderTaskSummary(tasks, `
+    <div class="overview-action-row">
+      <button class="btn btn-ghost btn-sm" onclick="window._currentPersonOverviewId = null; renderOverview()">← Şirket genel bakışına dön</button>
+    </div>
+  `);
+};
+
 async function renderOverview() {
+  if (isAdmin()) {
+    if (window._currentPersonOverviewId) {
+      await window.renderPersonOverview(window._currentPersonOverviewId);
+    } else {
+      await renderAdminCompanyOverview();
+    }
+    return;
+  }
+
   let projId = parseInt(ST.activeProj) || null;
 
   if (!projId) {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const user = getCurrentUser();
     const res = user.role === 'admin'
       ? await fetch(`${API}/projects`)
       : await fetch(`${API}/users/${user.id}/projects`);
@@ -397,7 +583,7 @@ async function renderOverview() {
   if (!projId) return;
 
   // Proje adını al
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const user = getCurrentUser();
   const projRes = user.role === 'admin'
     ? await fetch(`${API}/projects`)
     : await fetch(`${API}/users/${user.id}/projects`);
@@ -411,46 +597,245 @@ async function renderOverview() {
   document.getElementById('pgSub').textContent = 'Güncellendi: ' + now.toLocaleDateString('tr-TR',{day:'numeric',month:'long',year:'numeric'}) + ', ' + now.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
 
   const res = await fetch(`${API}/tasks?project_id=${projId}`);
-  const tasks = await res.json();
+  const allTasks = await res.json();
+  const tasks = isAdmin() ? allTasks : allTasks.filter(isTaskVisibleForCurrentUser);
   
   window._allTasks = tasks;
 
-  const todo  = tasks.filter(t=>t.col==='todo').length;
-  const doing = tasks.filter(t=>t.col==='doing').length;
-  const done  = tasks.filter(t=>t.col==='done').length;
-  const total = tasks.length || 1;
-  const pct   = Math.round(done/total*100);
-
-  document.getElementById('statsRow').innerHTML = `
-    <div class="stat-card"><div class="stat-lbl">Toplam Görev</div><div class="stat-val" style="color:var(--accent-light)">${tasks.length}</div><div class="stat-bar"><div class="stat-bar-fill" style="width:100%;background:var(--accent2)"></div></div><div class="stat-foot"><div class="stat-change neutral">tüm görevler</div></div></div>
-    <div class="stat-card"><div class="stat-lbl">Devam Eden</div><div class="stat-val" style="color:var(--amber)">${doing}</div><div class="stat-bar"><div class="stat-bar-fill" style="width:${doing/total*100}%;background:var(--amber)"></div></div><div class="stat-foot"><div class="stat-change neutral">aktif sprint</div></div></div>
-    <div class="stat-card"><div class="stat-lbl">Tamamlanan</div><div class="stat-val" style="color:var(--green)">${done}</div><div class="stat-bar"><div class="stat-bar-fill" style="width:${pct}%;background:var(--green)"></div></div><div class="stat-foot"><div class="stat-change up">↑ %${pct} tamamlandı</div></div></div>
-    <div class="stat-card"><div class="stat-lbl">Yapılacak</div><div class="stat-val" style="color:var(--violet)">${todo}</div><div class="stat-bar"><div class="stat-bar-fill" style="width:${todo/total*100}%;background:var(--violet)"></div></div><div class="stat-foot"><div class="stat-change neutral">bekliyor</div></div></div>`;
-
-  document.getElementById('overviewBoard').innerHTML =
-    colHTML('todo','Yapılacak','var(--text2)',tasks) +
-    colHTML('doing','Devam Ediyor','var(--accent-light)',tasks) +
-    colHTML('done','Tamamlandı','var(--green)',tasks);
+  renderTaskSummary(tasks);
 }
 
-renderOverview();
+if (getCurrentUser().id) renderOverview();
+
+function toggleAdminPanel() {
+  document.getElementById('adminPanel')?.classList.toggle('open');
+  document.getElementById('nav-yonetim')?.classList.toggle('open');
+}
+
+function openAdminSection(id) {
+  document.getElementById('adminPanel')?.classList.add('open');
+  document.getElementById('nav-yonetim')?.classList.add('open');
+  const workspace = document.getElementById('adminWorkspace');
+  if (workspace) {
+    workspace.style.display = 'block';
+    workspace.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  const overview = document.getElementById('overviewContent');
+  if (overview) overview.style.display = 'none';
+  document.querySelectorAll('.admin-panel-section').forEach(section => {
+    section.classList.toggle('active', section.id === id);
+  });
+  document.querySelectorAll('.admin-section-menu button').forEach(button => {
+    button.classList.toggle('active', button.getAttribute('onclick')?.includes(`'${id}'`));
+  });
+  const titles = {
+    adminUserCreate: 'Kullanıcı Ekle',
+    adminUsersSection: 'Kullanıcılar',
+    adminDeadlineCreate: 'Deadline Ekle',
+    adminDeadlinesSection: 'Deadlinelar',
+    adminTaskRevise: 'Görevi Revize Et',
+  };
+  const titleEl = document.getElementById('adminWorkspaceTitle');
+  if (titleEl) titleEl.textContent = titles[id] || 'Yönetim Paneli';
+}
+
+function focusAdminSection(id) {
+  document.getElementById('adminPanel')?.classList.add('open');
+  document.getElementById('nav-yonetim')?.classList.add('open');
+  openAdminSection(id);
+}
+
+function openAdminMenuFromHash() {
+  if (!isAdmin() || window.location.hash !== '#admin') return;
+  document.getElementById('adminPanel')?.classList.add('open');
+  document.getElementById('nav-yonetim')?.classList.add('open');
+  document.getElementById('adminPanel')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function loadAdminPanelData() {
+  if (!isAdmin()) return;
+
+  const panel = document.getElementById('adminPanel');
+  if (panel) panel.style.display = 'block';
+
+  const [usersRes, projectsRes, deadlinesRes, tasksRes] = await Promise.all([
+    fetch(`${API}/users`),
+    fetch(`${API}/projects`),
+    fetch(`${API}/deadlines?role=admin`),
+    fetch(`${API}/tasks`)
+  ]);
+  const users = await usersRes.json();
+  const projects = await projectsRes.json();
+  const deadlines = await deadlinesRes.json();
+  const tasks = await tasksRes.json();
+
+  const projSelect = document.getElementById('adminNewProjId');
+  if (projSelect) {
+    projSelect.innerHTML = '<option value="">Proje seç</option>' +
+      projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+  }
+
+  const usersList = document.getElementById('adminUsersList');
+  if (usersList) {
+    usersList.innerHTML = users.map(u => `
+      <div class="admin-list-row">
+        <div><strong>${u.name || u.username}</strong><div class="admin-list-meta">${u.email || u.username} · ${u.role}</div></div>
+        <div class="admin-list-actions">
+          <span class="pill ${ROLE_COLORS[normalizeRole(u.role)] || 'pill-blue'}">${u.initials || u.username.slice(0,2).toUpperCase()}</span>
+          ${u.role !== 'admin' ? `<button class="admin-delete-btn" type="button" onclick="adminDeleteUser(${u.id}, '${(u.name || u.username).replace(/'/g, "\\'")}')">Sil</button>` : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  const deadlinesList = document.getElementById('adminDeadlinesList');
+  if (deadlinesList) {
+    deadlinesList.innerHTML = deadlines.map(d => `
+      <div class="admin-list-row">
+        <div><strong>${d.title}</strong><div class="admin-list-meta">${d.assigned_role} · ${d.due_date?.split('T')[0] || d.due_date}</div></div>
+      </div>
+    `).join('') || '<div class="insight-empty">Deadline yok.</div>';
+  }
+
+  const taskSelect = document.getElementById('adminTaskSelect');
+  if (taskSelect) {
+    taskSelect.innerHTML = tasks.map(t => `<option value="${t.id}">${t.title}</option>`).join('');
+  }
+}
+
+async function adminCreateUser() {
+  const name = document.getElementById('adminNewName').value.trim();
+  const email = document.getElementById('adminNewEmail').value.trim();
+  const username = document.getElementById('adminNewUsername').value.trim();
+  const password = document.getElementById('adminNewPassword').value.trim();
+  const role = document.getElementById('adminNewRole').value.trim();
+  const projId = document.getElementById('adminNewProjId').value;
+
+  if (!name || !email || !username || !password || !role) {
+    toast('Kullanıcı bilgilerini doldurun', 'error');
+    return;
+  }
+
+  const res = await fetch(`${API}/users`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, email, username, password, role })
+  });
+  const user = await res.json();
+
+  if (projId) {
+    await fetch(`${API}/users/${user.id}/projects`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ project_id: parseInt(projId) })
+    });
+  }
+
+  ['adminNewName','adminNewEmail','adminNewUsername','adminNewPassword','adminNewRole'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('adminNewProjId').value = '';
+  toast('Kullanıcı oluşturuldu', 'success');
+  notifyDemoSync('user-created', user);
+  loadAdminPanelData();
+  renderOverview();
+}
+
+async function adminDeleteUser(id, name) {
+  if (!confirm(`${name} şirketten çıkarılsın mı?`)) return;
+
+  const res = await fetch(`${API}/users/${id}`, { method: 'DELETE' });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    toast(data.message || 'Kullanıcı silinemedi', 'error');
+    return;
+  }
+
+  toast('Kullanıcı silindi', 'success');
+  notifyDemoSync('user-deleted', { id });
+  await loadAdminPanelData();
+  renderOverview();
+}
+
+async function adminCreateDeadline() {
+  const title = document.getElementById('adminDlTitle').value.trim();
+  const assigned_role = document.getElementById('adminDlRole').value.trim();
+  const due_date = document.getElementById('adminDlDate').value;
+  const description = document.getElementById('adminDlDesc').value.trim();
+  const user = getCurrentUser();
+
+  if (!title || !assigned_role || !due_date) {
+    toast('Deadline için başlık, rol ve tarih gerekli', 'error');
+    return;
+  }
+
+  await fetch(`${API}/deadlines`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title, assigned_role, due_date, description, created_by: user.id })
+  });
+
+  ['adminDlTitle','adminDlRole','adminDlDate','adminDlDesc'].forEach(id => document.getElementById(id).value = '');
+  toast('Deadline eklendi', 'success');
+  notifyDemoSync('deadline-created');
+  loadAdminPanelData();
+}
+
+async function adminReviseTask() {
+  const id = document.getElementById('adminTaskSelect').value;
+  if (!id) {
+    toast('Revize edilecek görevi seçin', 'error');
+    return;
+  }
+
+  const body = {
+    col: document.getElementById('adminTaskCol').value,
+    assignee: document.getElementById('adminTaskAssignee').value.trim().toUpperCase().slice(0, 3),
+    deadline: document.getElementById('adminTaskDeadline').value || null
+  };
+
+  if (body.assignee) {
+    const resU = await fetch(`${API}/users`);
+    const users = await resU.json();
+    const target = users.find(u => (u.initials || u.username || '').slice(0,2).toUpperCase() === body.assignee.slice(0,2));
+    if (target && target.role === 'admin') {
+      toast('Admin kullanıcısına görev atanamaz!', 'error');
+      return;
+    }
+  }
+
+  await fetch(`${API}/tasks/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+
+  const taskTitle = document.getElementById('adminTaskSelect').selectedOptions[0]?.textContent || 'Görev';
+  await notifyAssignee(body.assignee, taskTitle);
+  toast('Görev revize edildi', 'success');
+  notifyDemoSync('task-revised', { id, ...body });
+  renderOverview();
+  loadAdminPanelData();
+}
 
 applyTheme(getTheme());
 renderUserPill();
 document.addEventListener('DOMContentLoaded', async () => {
+  const user = requireAuth();
+  if (!user) return;
   updateBadge();
   renderChat();
   await renderProjDD();
   renderOverview();
   loadTagOptions();
+  showAdminNav();
+  await loadAdminPanelData();
+  openAdminMenuFromHash();
 });
 
-const _user = JSON.parse(localStorage.getItem('user') || '{}');
-if (_user.role === 'admin') {
-  document.getElementById('nav-yonetim').style.display = 'flex';
-} else {
+if (!isAdmin()) {
   const addBtn = document.querySelector('.pg-actions .btn-primary');
   if (addBtn) addBtn.style.display = 'none';
+} else {
+  document.getElementById('adminPanel').style.display = 'block';
 }
 
 </script>

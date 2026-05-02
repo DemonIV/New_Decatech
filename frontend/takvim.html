@@ -10,7 +10,7 @@
 <body>
 
 <script>
-const user = localStorage.getItem("user");
+const user = sessionStorage.getItem("user");
 if (!user) {
   window.location.href = "login.html";
 }
@@ -60,7 +60,7 @@ if (!user) {
   <div class="sidebar-divider"></div>
   
     <!-- YÖNETİM PANELİ (sadece admin) -->
-  <a class="nav-item" href="yonetim.html" id="nav-yonetim" style="display:none;">
+  <a class="nav-item" href="index.html#admin" id="nav-yonetim" style="display:none;">
     <span class="nav-icon">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
@@ -141,7 +141,7 @@ window.createProj = async () => {
   const name = document.getElementById('pName').value.trim();
   if (!name) { toast('Proje adı gerekli!', 'error'); return; }
   const color = document.getElementById('pColor').value;
-  const user  = JSON.parse(localStorage.getItem('user') || '{}');
+  const user  = getCurrentUser();
   const res = await fetch(`${API}/projects`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -165,7 +165,7 @@ let _calDeadlines = [];
 let _calTaskDeadlines = [];
 
 async function loadCalendarData() {
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const user = getCurrentUser();
 
   // Yönetim deadline'ları — kullanıcı rolüne göre filtrele
   try {
@@ -186,7 +186,8 @@ async function loadCalendarData() {
     _calTaskDeadlines = [];
     for (const p of projects) {
       const tRes = await fetch(`${API}/tasks?project_id=${p.id}`);
-      const tasks = await tRes.json();
+      const allTasks = await tRes.json();
+      const tasks = isAdmin() ? allTasks : allTasks.filter(isTaskVisibleForCurrentUser);
       tasks.filter(t => t.deadline).forEach(t => {
         _calTaskDeadlines.push({ ...t, _projName: p.name });
       });
@@ -210,21 +211,25 @@ function renderCalendar() {
   const dim   = new Date(y, m+1, 0).getDate();
   const dprev = new Date(y, m, 0).getDate();
 
-  // Gün → renk map'i
-  const deadlineDayColors = {};
+  // Gün → öğe listesi map'i
+  const dayItems = {};
 
   _calDeadlines.forEach(dl => {
     const dt = new Date(dl.due_date);
     if (dt.getFullYear() === y && dt.getMonth() === m) {
+      const d = dt.getDate();
+      if (!dayItems[d]) dayItems[d] = [];
       const color = ROLE_COLORS[normalizeRole(dl.assigned_role)] || 'pill-blue';
-      deadlineDayColors[dt.getDate()] = color;
+      dayItems[d].push({ type: 'deadline', title: dl.title, desc: dl.description, color });
     }
   });
 
   _calTaskDeadlines.forEach(t => {
     const dt = new Date(t.deadline);
     if (dt.getFullYear() === y && dt.getMonth() === m) {
-      deadlineDayColors[dt.getDate()] = t.tag || 'pill-blue';
+      const d = dt.getDate();
+      if (!dayItems[d]) dayItems[d] = [];
+      dayItems[d].push({ type: 'task', title: t.title, assignee: t.assignee, color: t.tag || 'pill-blue' });
     }
   });
 
@@ -235,13 +240,14 @@ function renderCalendar() {
   
   for (let d = 1; d <= dim; d++) {
     const isToday = d === today.getDate() && m === today.getMonth() && y === today.getFullYear();
-    const pillClass = deadlineDayColors[d];
+    const items = dayItems[d] || [];
     const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const isOverdue = pillClass && dateStr < todayStr;
+    const isOverdue = items.length > 0 && dateStr < todayStr;
 
     let style = '';
-    if (pillClass) {
-      // pill class'tan rengi al
+    let contentHtml = '';
+    if (items.length > 0) {
+      const mainColor = items[0].color;
       const colorMap = {
         'pill-blue':   '#3b82f6',
         'pill-violet': '#8b5cf6',
@@ -250,12 +256,20 @@ function renderCalendar() {
         'pill-red':    '#ef4444',
         'pill-cyan':   '#06b6d4',
       };
-      const bg = colorMap[pillClass] || '#3b82f6';
+      const bg = colorMap[mainColor] || '#3b82f6';
       style = `style="background:${bg}20;border:2px solid ${bg};color:var(--fg);font-weight:600;"`;
       if (isOverdue) style = `style="background:#ef444420;border:2px solid #ef4444;color:#ef4444;font-weight:700;"`;
+      
+      contentHtml = items.map(item => {
+        const text = item.type === 'deadline' ? `M: ${item.title}` : `${item.title} (${item.assignee||'Atanmadı'})`;
+        return `<div style="font-size:10px;line-height:1.2;margin-top:4px;background:rgba(255,255,255,0.2);padding:3px;border-radius:4px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;" title="${text}">${text}</div>`;
+      }).join('');
     }
 
-    html += `<div class="cal-day ${isToday?'today':''}" ${style} onclick="calDayClick(${y},${m},${d})">${d}</div>`;
+    html += `<div class="cal-day ${isToday?'today':''}" ${style} onclick="calDayClick(${y},${m},${d})">
+      <div>${d}</div>
+      ${contentHtml}
+    </div>`;
   }
 
   const rem = 42 - (first + dim);
@@ -326,16 +340,14 @@ applyTheme(getTheme());
 renderUserPill();
 
 document.addEventListener('DOMContentLoaded', async () => {
+  const user = requireAuth();
+  if (!user) return;
   updateBadge();
   renderChat();
   await renderProjDD();
   loadCalendarData();
   loadTagOptions();
-
-  const _u = JSON.parse(localStorage.getItem('user') || '{}');
-  if (_u.role === 'admin') {
-    document.getElementById('nav-yonetim').style.display = 'flex';
-  }
+  showAdminNav();
 });
 </script>
 </body></html>

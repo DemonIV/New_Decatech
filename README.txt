@@ -1,90 +1,129 @@
-# DECATECH — Proje Yönetim Uygulaması
+# DECATECH - Proje Yönetim Uygulaması
 
-Modern, gerçek zamanlı proje yönetim uygulaması. Kanban, takvim, raporlama ve ekip yönetimi özellikleri içerir.
-
-## Özellikler
-
-- 📋 **Kanban** — Sürükle bırak görev yönetimi, deadline ve departman filtresi
-- 📅 **Takvim** — Görev ve deadline'ları takvimde görüntüleme
-- 📊 **Raporlama** — Proje ilerleme ve analitik
-- 👥 **Ekip Yönetimi** — Kullanıcı ve proje bazlı yetkilendirme
-- 🔔 **Bildirimler** — Görev bildirimleri
-- 🌙 **Tema** — Açık/koyu tema desteği
-- 💬 **Sohbet** — Takım içi anlık mesajlaşma
+DECATECH; proje, görev, kanban, takvim, raporlama ve ekip yönetimi modüllerini içeren web tabanlı bir proje yönetim uygulamasıdır.
+Ana ekranda mevcut görev verilerinden üretilen proje sağlık skoru, risk özeti ve yaklaşan işler paneli bulunur.
 
 ## Teknolojiler
 
-**Frontend:** HTML, CSS, JavaScript  
-**Backend:** Node.js, Express  
-**Veritabanı:** PostgreSQL
+- Frontend: HTML, CSS, JavaScript
+- Backend: Node.js, Express
+- Veritabanı: PostgreSQL
 
 ## Kurulum
 
 ### Gereksinimler
+
 - Node.js
 - PostgreSQL
 
-### Adımlar
+### 1. Backend bağımlılıklarını yükle
 
-**1. Repoyu klonla:**
-```bash
-git clone https://github.com/kullanicin/decatech.git
-cd decatech
-```
-
-**2. Backend bağımlılıklarını yükle:**
 ```bash
 cd backend
 npm install
 ```
 
-**3. Veritabanını oluştur:**
+### 2. Ortam değişkenlerini hazırla
+
+```bash
+cd backend
+cp .env.example .env
+```
+
+`.env` dosyasındaki `DB_PASSWORD` değerini kendi PostgreSQL şifrene göre güncelle.
+
+### 3. Veritabanını oluştur
+
 ```bash
 createdb taskapp
 ```
 
-**4. Schema'yı yükle:**
+### 4. Şemayı yükle
+
+Komutu proje kök dizininde çalıştır:
+
 ```bash
 psql -U postgres -d taskapp -f schema.sql
 ```
 
-**5. Sunucuyu başlat:**
-```bash
-nodemon index.js
+### 5. Admin kullanıcısı oluştur
+
+```sql
+INSERT INTO users (username, password, role)
+VALUES ('admin', 'admin123', 'admin');
 ```
 
-**6. Frontend'i başlat:**
-- `frontend` klasöründe Live Server ile `index.html` aç
-- Varsayılan: `http://127.0.0.1:5500`
+### 6. Backend'i başlat
 
-## Varsayılan Giriş
+Geliştirme modu:
 
-Admin hesabı oluşturmak için direkt DB'ye ekle:
-```sql
-INSERT INTO users (username, password, role) VALUES ('admin', 'admin123', 'admin');
+```bash
+cd backend
+npm run dev
+```
+
+Normal çalıştırma:
+
+```bash
+cd backend
+npm start
+```
+
+Backend varsayılan olarak `http://localhost:3000` adresinde çalışır. Sağlık kontrolü:
+
+```bash
+http://localhost:3000/health
+```
+
+### 7. Frontend'i başlat
+
+`frontend` klasörünü Live Server ile aç ve `login.html` sayfasından giriş yap.
+
+Varsayılan geliştirme adresi:
+
+```bash
+http://127.0.0.1:5500/frontend/login.html
 ```
 
 ## Proje Yapısı
-```
+
+```text
 decatech/
 ├── backend/
-│   ├── index.js        # Express sunucu
-│   ├── schema.sql      # Veritabanı şeması
+│   ├── config/
+│   │   └── db.js
+│   ├── middleware/
+│   │   └── dbCheck.js
+│   ├── routes/
+│   │   ├── deadlineRoutes.js
+│   │   ├── projectRoutes.js
+│   │   ├── taskRoutes.js
+│   │   └── userRoutes.js
+│   ├── .env.example
+│   ├── index.js
 │   └── package.json
 ├── frontend/
-│   ├── shared.js       # Ortak fonksiyonlar
-│   ├── shared.css      # Ortak stiller
-│   ├── index.html      # Genel bakış
-│   ├── kanban.html     # Kanban
-│   ├── takvim.html     # Takvim
-│   ├── raporlama.html  # Raporlama
+│   ├── shared.js
+│   ├── shared.css
+│   ├── login.html
+│   ├── index.html
+│   ├── kanban.html
+│   ├── takvim.html
+│   ├── raporlama.html
 │   ├── bildirimler.html
-│   ├── yonetim.html    # Admin paneli
+│   ├── yonetim.html
 │   ├── profil.html
-│   ├── ayarlar.html
-│   └── login.html
-└── README.md
+│   └── ayarlar.html
+├── schema.sql
+└── README.txt
 ```
+
+## Notlar
+
+- `backend/node_modules` git takibinde tutulmaz. Bağımlılıklar `npm install` ile kurulur.
+- `.env` dosyası repoya eklenmez. Örnek değerler `backend/.env.example` içinde tutulur.
+- Login endpoint'i `POST /users/login` adresindedir ve başarılı girişte `{ success, user }` formatında yanıt döner.
+- Frontend sayfaları ortak API adresi, oturum kontrolü, admin menüsü ve kullanıcı bilgisi için `frontend/shared.js` içindeki yardımcı fonksiyonları kullanır.
 
 
 

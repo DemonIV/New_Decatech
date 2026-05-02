@@ -8,46 +8,181 @@ const LS = {
   set: (k, v) => localStorage.setItem('dct_' + k, JSON.stringify(v)),
 };
 
+const SS = {
+  get: k => { try { return JSON.parse(sessionStorage.getItem('dct_' + k)); } catch { return null; } },
+  set: (k, v) => sessionStorage.setItem('dct_' + k, JSON.stringify(v)),
+};
+
 // ── Default data (only used on first ever load) ──
-const DEFAULT_TASKS = [
-  {id:'t1',title:'Ana sayfa yeniden tasarımı',desc:'Hero bölümü ve navigasyon mockupları.',col:'todo',tag:'pill-green',priority:'pill-amber',assignee:'MK',created:Date.now()-3*86400000},
-  {id:'t2',title:'REST API entegrasyonu',desc:'Kullanıcı ve proje endpointleri bağlanacak.',col:'todo',tag:'pill-violet',priority:'pill-red',assignee:'AY',created:Date.now()-2*86400000},
-  {id:'t3',title:'Veritabanı migrasyon scripti',desc:'',col:'todo',tag:'pill-blue',priority:'pill-green',assignee:'CK',created:Date.now()},
-  {id:'t4',title:'Raporlama modülü grafikleri',desc:'Recharts ile ilerleme grafikleri.',col:'doing',tag:'pill-blue',priority:'pill-amber',assignee:'EÖ',created:Date.now()-86400000},
-  {id:'t5',title:'Push notification sistemi',desc:'Firebase altyapısı.',col:'doing',tag:'pill-violet',priority:'pill-amber',assignee:'AY',created:Date.now()},
-  {id:'t6',title:'JWT kimlik doğrulama',desc:'Access & refresh token akışı tamamlandı.',col:'done',tag:'pill-green',priority:'pill-red',assignee:'MK',created:Date.now()-5*86400000},
-  {id:'t7',title:'Proje oluşturma sihirbazı',desc:'3 adımlı onboarding akışı.',col:'done',tag:'pill-blue',priority:'pill-green',assignee:'CK',created:Date.now()-4*86400000},
-  {id:'t8',title:'Şirket yönetim paneli',desc:'CRUD işlemleri tamamlandı.',col:'done',tag:'pill-amber',priority:'pill-green',assignee:'EÖ',created:Date.now()-6*86400000},
-  {id:'t9',title:'E2E test coverage',desc:'Playwright testleri.',col:'doing',tag:'pill-cyan',priority:'pill-red',assignee:'CK',created:Date.now()},
-];
+const DEFAULT_TASKS = [];
 const DEFAULT_PROJECTS = [
   {id:'p1',name:'Proje X',color:'#2d5299'},
   {id:'p2',name:'Proje Y',color:'#8b5cf6'},
 ];
 const DEFAULT_MSGS = [
-  {id:'m1',from:'Mehmet K.',text:'API tasarımı için toplantı yarın 10:00\'da.',time:'09:15',me:false},
-  {id:'m2',from:'Can K.',text:'Raporlama PR\'ı hazır, inceleme bekleniyor.',time:'10:32',me:false},
-  {id:'m3',from:'Siz',text:'Harika, öğleden sonra bakacağım 👍',time:'10:45',me:true},
-  {id:'m4',from:'Ece Ö.',text:'Bildirim tasarımları Figma\'ya yüklendi.',time:'11:20',me:false},
+  {id:'m1',from:'Ebubekir K.',text:'Backend route düzenlemeleri demo için hazır.',time:'09:15',me:false},
+  {id:'m2',from:'Samet K.',text:'Raporlama kartlarını sunum akışına göre kontrol ediyorum.',time:'10:32',me:false},
+  {id:'m3',from:'Siz',text:'Harika, öğleden sonra birlikte geçelim.',time:'10:45',me:true},
+  {id:'m4',from:'Safa A.',text:'Frontend yönetim paneli düzeni güncellendi.',time:'11:20',me:false},
   {id:'m5',from:'Siz',text:'Teşekkürler! İnceliyorum.',time:'11:22',me:true},
 ];
-const DEFAULT_NOTIFS = [
-  {id:'n1',icon:'📋',title:'Yeni görev atandı',body:'"API entegrasyonu" size atandı.',time:'2 saat önce',unread:true},
-  {id:'n2',icon:'💬',title:'Yeni mesaj',body:'Mehmet K. size mesaj gönderdi.',time:'3 saat önce',unread:true},
-  {id:'n3',icon:'✅',title:'Görev tamamlandı',body:'"JWT kimlik doğrulama" tamamlandı.',time:'Dün',unread:true},
-  {id:'n4',icon:'🔔',title:'Proje güncellendi',body:'Proje X zaman çizelgesi güncellendi.',time:'2 gün önce',unread:false},
-];
+const DEFAULT_NOTIFS = [];
 
-const API = 'http://localhost:3000';
+window.API = window.API || 'http://localhost:3000';
+
+window.getCurrentUser = () => {
+  try {
+    return JSON.parse(sessionStorage.getItem('user') || '{}');
+  } catch {
+    return {};
+  }
+};
+
+window.setCurrentUser = (user) => {
+  sessionStorage.setItem('user', JSON.stringify(user));
+};
+
+window.clearCurrentUser = () => {
+  sessionStorage.removeItem('user');
+};
+
+window.getUserInfo = () => {
+  const user = getCurrentUser();
+  return LS.get('userInfo') || {
+    name: user.username || 'Kullanıcı',
+    email: '',
+    role: user.role || 'user',
+  };
+};
+
+window.setUserInfo = (info) => {
+  LS.set('userInfo', info);
+};
+
+window.isAdmin = () => getCurrentUser().role === 'admin';
+
+window.requireAuth = () => {
+  const user = getCurrentUser();
+  if (!user.id) {
+    window.location.href = 'login.html';
+    return null;
+  }
+
+  return user;
+};
+
+window.requireAdmin = () => {
+  const user = requireAuth();
+  if (!user) return null;
+
+  if (user.role !== 'admin') {
+    window.location.href = 'index.html';
+    return null;
+  }
+
+  return user;
+};
+
+window.showAdminNav = () => {
+  document.querySelectorAll('#nav-yonetim').forEach((el) => {
+    el.style.display = isAdmin() ? 'flex' : 'none';
+  });
+};
+
+window.currentUserInitials = () => {
+  const user = getCurrentUser();
+  return (user.initials || user.username || '').slice(0, 2).toUpperCase();
+};
+
+window.isTaskVisibleForCurrentUser = (task) => {
+  if (isAdmin()) return true;
+  const initials = currentUserInitials();
+  return !task.assignee || String(task.assignee).toUpperCase() === initials;
+};
+
+window.canManageTask = (task) => {
+  if (isAdmin()) return true;
+  const initials = currentUserInitials();
+  return String(task.assignee || '').toUpperCase() === initials;
+};
+
+const syncChannel = 'BroadcastChannel' in window ? new BroadcastChannel('decatech-demo-sync') : null;
+
+window.notifyDemoSync = (type, payload = {}) => {
+  const event = { type, payload, at: Date.now() };
+  syncChannel?.postMessage(event);
+  localStorage.setItem('dct_sync_event', JSON.stringify(event));
+};
+
+window.refreshDemoViews = () => {
+  if (typeof renderKanban === 'function') renderKanban();
+  if (typeof renderOverview === 'function') renderOverview();
+  if (typeof renderReports === 'function') renderReports();
+  if (typeof loadCalendarData === 'function') loadCalendarData();
+  if (typeof renderNotifs === 'function') renderNotifs();
+  if (typeof loadUsers === 'function') loadUsers();
+  if (typeof loadDeadlines === 'function') loadDeadlines();
+  if (typeof loadTaskDeadlines === 'function') loadTaskDeadlines();
+  renderChat();
+  updateBadge();
+};
+
+syncChannel?.addEventListener('message', () => refreshDemoViews());
+window.addEventListener('storage', (event) => {
+  if (event.key === 'dct_sync_event' || event.key === 'dct_msgs' || event.key === 'dct_notifs') {
+    refreshDemoViews();
+  }
+});
+
+window.startDemoRealtime = () => {
+  if (window.__demoRealtimeStarted) return;
+  window.__demoRealtimeStarted = true;
+  setInterval(refreshDemoViews, 3000);
+};
+
+window.initChatToggle = () => {
+  const chat = document.querySelector('.chat');
+  const header = document.querySelector('.chat-header');
+  if (!chat || !header || document.getElementById('chatToggleBtn')) return;
+
+  const btn = document.createElement('button');
+  btn.id = 'chatToggleBtn';
+  btn.className = 'chat-toggle-btn';
+  btn.type = 'button';
+  btn.textContent = '↓';
+  btn.title = 'Sohbeti aç/kapat';
+  btn.addEventListener('click', () => {
+    chat.classList.toggle('collapsed');
+    btn.textContent = chat.classList.contains('collapsed') ? '↑' : '↓';
+  });
+  header.appendChild(btn);
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  initChatToggle();
+  if (getCurrentUser().id) startDemoRealtime();
+});
+
+window.renderOverview = window.renderOverview || (() => {});
+window.renderKanban = window.renderKanban || (() => {});
+window.renderReports = window.renderReports || (() => {});
 
 // ── State — artık DB'den geliyor ──
 window.ST = {
-  get activeProj() { return LS.get('activeProj') || null; },
-  setActiveProj(v) { LS.set('activeProj', v); },
+  get activeProj() { return SS.get('activeProj') || null; },
+  setActiveProj(v) { SS.set('activeProj', v); },
 
   // Bunlar hâlâ localStorage'da kalıyor
-  get msgs()   { return LS.get('msgs')   || DEFAULT_MSGS; },
-  get notifs() { return LS.get('notifs') || DEFAULT_NOTIFS; },
+  get msgs() {
+    const msgs = LS.get('msgs');
+    if (!msgs || msgs.some(m => ['Mehmet K.', 'Can K.', 'Ece Ö.'].includes(m.from))) return DEFAULT_MSGS;
+    return msgs;
+  },
+  get notifs() {
+    const notifs = LS.get('notifs');
+    if (!notifs || notifs.some(n => String(n.body || '').includes('Mehmet K.'))) return DEFAULT_NOTIFS;
+    return notifs;
+  },
   setMsgs(v)   { LS.set('msgs', v); },
   setNotifs(v) { LS.set('notifs', v); },
 
@@ -79,14 +214,43 @@ window.toast = (msg, type='info') => {
 // ── Add notification ──
 window.addNotif = (icon, title, body) => {
   const notifs = ST.notifs;
-  notifs.unshift({id:'n'+Date.now(),icon,title,body,time:'Az önce',unread:true});
+  const user = getCurrentUser();
+  notifs.unshift({id:'n'+Date.now(),icon,title,body,time:'Az önce',unread:true,userId:user.id});
   ST.setNotifs(notifs);
   updateBadge();
+  notifyDemoSync('notification');
+};
+
+window.addNotifForUser = (userId, icon, title, body) => {
+  const notifs = ST.notifs;
+  notifs.unshift({id:'n'+Date.now(),icon,title,body,time:'Az önce',unread:true,userId});
+  ST.setNotifs(notifs);
+  notifyDemoSync('notification');
+};
+
+window.notifyAssignee = async (assignee, title) => {
+  if (!assignee) return;
+
+  try {
+    const res = await fetch(`${API}/users`);
+    const users = await res.json();
+    const target = users.find((user) => {
+      const initials = (user.initials || user.username || '').slice(0, 2).toUpperCase();
+      return initials === String(assignee).toUpperCase();
+    });
+
+    if (target) {
+      addNotifForUser(target.id, '📋', 'Yeni görev atandı', `"${title}" görevi size atandı.`);
+    }
+  } catch (err) {
+    console.error('Görev bildirimi gönderilemedi:', err);
+  }
 };
 
 // ── Update notification badge (call from each page) ──
 window.updateBadge = () => {
-  const count = ST.notifs.filter(n => n.unread).length;
+  const user = getCurrentUser();
+  const count = ST.notifs.filter(n => n.unread && (!n.userId || n.userId === user.id)).length;
   const dot = document.getElementById('notifDot');
   const badge = document.getElementById('navBadge');
   if (dot) dot.style.display = count ? 'block' : 'none';
@@ -96,7 +260,7 @@ window.updateBadge = () => {
 // ── Sidebar project list ──
 window.renderProjDD = async () => {
   try {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const user = getCurrentUser();
     let projects;
 
     if (user.role === 'admin') {
@@ -206,39 +370,32 @@ window.switchProj = (id) => {
 window.renderChat = () => {
   const el = document.getElementById('chatMsgs');
   if (!el) return;
+  const user = getCurrentUser();
   el.innerHTML = ST.msgs.map(m => `
-    <div class="msg-group ${m.me?'mine':''}">
-      ${!m.me ? `<div class="msg-sender-name">${m.from}</div>` : ''}
-      <div class="msg-bubble ${m.me?'mine':'them'}">${m.text}</div>
+    <div class="msg-group ${(m.userId && m.userId === user.id) || m.me ? 'mine' : ''}">
+      ${!((m.userId && m.userId === user.id) || m.me) ? `<div class="msg-sender-name">${m.from}</div>` : ''}
+      <div class="msg-bubble ${((m.userId && m.userId === user.id) || m.me) ? 'mine' : 'them'}">${m.text}</div>
       <div class="msg-time">${m.time}</div>
     </div>`).join('');
   el.scrollTop = el.scrollHeight;
 };
 
 const BOT_REPLIES = ['Anladım, teşekkürler!','Harika, devam edelim 👍','Bakıyorum şimdi.','Tamam, ilgileneceğim.','Güzel iş!','Bunu not ettim.','👌'];
-const BOT_NAMES   = ['Mehmet K.','Can K.','Ece Ö.'];
+const BOT_NAMES   = ['Ebubekir K.','Samet K.','Safa A.'];
 
 window.sendMsg = () => {
   const input = document.getElementById('chatInput');
   const text  = input?.value.trim();
   if (!text) return;
+  const user = getCurrentUser();
   const now = new Date();
   const time = now.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
   const msgs = ST.msgs;
-  msgs.push({id:'m'+Date.now(),from:'Siz',text,time,me:true});
+  msgs.push({id:'m'+Date.now(),from:user.username || 'Kullanıcı',userId:user.id,text,time,me:false});
   ST.setMsgs(msgs);
   renderChat();
   input.value = '';
-  setTimeout(() => {
-    const reply  = BOT_REPLIES[Math.floor(Math.random()*BOT_REPLIES.length)];
-    const sender = BOT_NAMES[Math.floor(Math.random()*BOT_NAMES.length)];
-    const t2 = new Date().toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit'});
-    const msgs2 = ST.msgs;
-    msgs2.push({id:'m'+Date.now(),from:sender,text:reply,time:t2,me:false});
-    ST.setMsgs(msgs2);
-    renderChat();
-    addNotif('💬','Yeni mesaj',`${sender}: ${reply}`);
-  }, 900 + Math.random()*1400);
+  notifyDemoSync('chat');
 };
 
 // ── Kanban card HTML ──
@@ -246,15 +403,18 @@ window.taskCardHTML = (t) => {
   const today = new Date().toISOString().split('T')[0];
   const dl = t.deadline ? t.deadline.split('T')[0] : null;
   const isOverdue = dl && dl < today;
+  const canManage = canManageTask(t);
+  const canDelete = isAdmin();
   return `
-  <div class="k-card" draggable="true" id="c-${t.id}"
+  <div class="k-card" draggable="${canManage}" id="c-${t.id}"
     ondragstart="dstart('${t.id}')" ondragend="dend()">
     <div class="k-card-top">
       <div class="k-card-title">${t.title}</div>
-      <div class="k-card-menu">
-        <div class="k-menu-btn" onclick="window.openEditTask(${t.id})">✎</div>
-        <div class="k-menu-btn del" onclick="window.delTask(${t.id})">✕</div>
-      </div>
+      ${canManage ? `<div class="k-card-menu">
+        ${isAdmin() ? `<div class="k-menu-btn" onclick="window.openEditTask(${t.id})">✎</div>` : ''}
+        ${!isAdmin() && t.col !== 'done' ? `<div class="k-menu-btn" title="Tamamlandı yap" onclick="window.markTaskDone(${t.id})">✓</div>` : ''}
+        ${canDelete ? `<div class="k-menu-btn del" onclick="window.delTask(${t.id})">✕</div>` : ''}
+      </div>` : ''}
     </div>
     ${t.desc||t.description ? `<div class="k-card-desc">${t.desc||t.description}</div>` : ''}
     <div class="k-card-footer">
@@ -267,6 +427,98 @@ window.taskCardHTML = (t) => {
       </div>` : ''}
     </div>
   </div>`;
+};
+
+window.markTaskDone = async (id) => {
+  await fetch(`${API}/tasks/${id}/col`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ col: 'done' })
+  });
+  toast('Görev tamamlandı olarak işaretlendi', 'success');
+  addNotif('✅', 'Görev tamamlandı', 'Çalışan bir görevi tamamlandı olarak işaretledi.');
+  notifyDemoSync('task-updated', { id, col: 'done' });
+  refreshDemoViews();
+};
+
+window.getTaskInsights = (tasks = []) => {
+  const today = new Date().toISOString().split('T')[0];
+  const activeTasks = tasks.filter((t) => t.col !== 'done');
+  const done = tasks.filter((t) => t.col === 'done').length;
+  const total = tasks.length || 1;
+  const overdue = activeTasks.filter((t) => t.deadline && t.deadline.split('T')[0] < today);
+  const upcoming = activeTasks
+    .filter((t) => t.deadline && t.deadline.split('T')[0] >= today)
+    .sort((a, b) => a.deadline.localeCompare(b.deadline));
+  const highPriorityOpen = activeTasks.filter((t) => t.priority === 'pill-red');
+  const unassigned = activeTasks.filter((t) => !t.assignee);
+  const completion = Math.round((done / total) * 100);
+  const healthScore = Math.max(
+    0,
+    Math.min(100, completion - overdue.length * 8 - highPriorityOpen.length * 4 - unassigned.length * 2)
+  );
+
+  return {
+    activeTasks,
+    completion,
+    healthScore,
+    highPriorityOpen,
+    overdue,
+    upcoming,
+    unassigned,
+  };
+};
+
+window.renderProjectInsights = (tasks = []) => {
+  const el = document.getElementById('projectInsights');
+  if (!el) return;
+
+  const insights = getTaskInsights(tasks);
+  const healthClass =
+    insights.healthScore >= 75 ? 'risk-ok' :
+    insights.healthScore >= 45 ? 'risk-warn' :
+    'risk-bad';
+  const healthColor =
+    insights.healthScore >= 75 ? 'var(--green)' :
+    insights.healthScore >= 45 ? 'var(--amber)' :
+    'var(--red)';
+  const healthLabel =
+    insights.healthScore >= 75 ? 'Kontrollü ilerliyor' :
+    insights.healthScore >= 45 ? 'Dikkat gerektiriyor' :
+    'Riskli proje';
+
+  const upcomingItems = insights.upcoming.slice(0, 3).map((task) => `
+    <div class="insight-row">
+      <span>${task.title}</span>
+      <strong>${task.deadline.split('T')[0]}</strong>
+    </div>
+  `).join('');
+
+  el.innerHTML = `
+    <div class="insight-card" style="cursor:pointer;" onclick="alert('Sağlık Puanı Hesaplanışı:\\n\\nTemel Puan: %' + Math.round(${insights.completion}) + '\\n- Geciken görev başına 8 puan ceza (' + ${insights.overdue.length} + ' * 8)\\n- Kritik açık görev başına 4 puan ceza (' + ${insights.highPriorityOpen.length} + ' * 4)\\n- Sorumlusuz görev başına 2 puan ceza (' + ${insights.unassigned.length} + ' * 2)\\n\\nToplam Sağlık Puanı: ' + ${insights.healthScore} + ' Puan')">
+      <div class="insight-head">
+        <div class="insight-title" style="text-decoration: underline dashed; text-underline-offset: 4px;">Proje Sağlığı ℹ️</div>
+        <span class="risk-pill ${healthClass}">${healthLabel}</span>
+      </div>
+      <div class="health-score" style="color:${healthColor}">${insights.healthScore}</div>
+      <div class="health-label">%${insights.completion} tamamlanma, ${insights.activeTasks.length} aktif görev</div>
+      <div class="health-meter"><div class="health-meter-fill" style="width:${insights.healthScore}%;background:${healthColor}"></div></div>
+    </div>
+    <div class="insight-card" style="cursor:pointer;" onclick="alert('Risk Özeti Kriterleri:\\n\\n- Geciken Görev: Bitiş tarihi geçmiş olan açık görevler.\\n- Kritik Açık Görev: Önceliği Yüksek (Kırmızı) olan ancak henüz tamamlanmamış görevler.\\n- Sorumlusuz Görev: Herhangi bir kişiye atanmamış, sahipsiz görevler.')">
+      <div class="insight-head"><div class="insight-title" style="text-decoration: underline dashed; text-underline-offset: 4px;">Risk Özeti ℹ️</div></div>
+      <div class="insight-list">
+        <div class="insight-row"><span>Geciken görev</span><strong>${insights.overdue.length}</strong></div>
+        <div class="insight-row"><span>Kritik açık görev</span><strong>${insights.highPriorityOpen.length}</strong></div>
+        <div class="insight-row"><span>Sorumlusuz görev</span><strong>${insights.unassigned.length}</strong></div>
+      </div>
+    </div>
+    <div class="insight-card">
+      <div class="insight-head"><div class="insight-title">Yaklaşan İşler</div></div>
+      <div class="insight-list">
+        ${upcomingItems || '<div class="insight-empty">Yaklaşan deadline bulunmuyor.</div>'}
+      </div>
+    </div>
+  `;
 };
 
 window.openEditTask = function(id) {
@@ -284,7 +536,7 @@ window.openEditTask = function(id) {
   if (dlEl) {
     dlEl.value = t.deadline ? t.deadline.split('T')[0] : '';
     dlEl.closest('.field-row').style.display = 
-      JSON.parse(localStorage.getItem('user')||'{}').role === 'admin' ? '' : 'none';
+      isAdmin() ? '' : 'none';
   }
   document.getElementById('taskModalBg').classList.add('open');
 };
@@ -307,6 +559,7 @@ window.ddrop = async (e, col) => {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ col })
   });
+  notifyDemoSync('task-updated', { id: window._dragId, col });
   window._dragId = null;
   document.querySelectorAll('.k-col').forEach(c => c.classList.remove('drag-over'));
   if (typeof renderKanban === 'function') renderKanban();
@@ -320,7 +573,7 @@ window.highlightNav = (page) => {
 };
 
 window.renderUserPill = () => {
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const user = getCurrentUser();
   const username = user.username || 'Kullanıcı';
   const initials = username.slice(0, 2).toUpperCase();
 
@@ -347,7 +600,7 @@ backdrop-filter: blur(12px);
     box-shadow:0 4px 16px rgba(0,0,0,0.15); min-width:180px; z-index:999; overflow:hidden;
   `;
 
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const user = getCurrentUser();
   const initials = (user.username || 'U').slice(0, 2).toUpperCase();
 
   dropdown.innerHTML = `
@@ -389,7 +642,7 @@ backdrop-filter: blur(12px);
 };
 
 window.logout = () => {
-  localStorage.removeItem('user');
+  clearCurrentUser();
   window.location.href = 'login.html';
 };
 
@@ -414,6 +667,11 @@ const ROLE_COLORS = {
   'tasarim':   'pill-green',
   'devops':    'pill-amber',
   'admin':     'pill-red',
+  'test uzmani': 'pill-green',
+  'scrum master': 'pill-amber',
+  'raporlama sorumlusu': 'pill-cyan',
+  'musteri temsilcisi': 'pill-violet',
+  'veri tabani': 'pill-red',
   'user':      'pill-cyan',
 };
 

@@ -10,7 +10,7 @@
 <body>
 
 <script>
-const user = localStorage.getItem("user");
+const user = sessionStorage.getItem("user");
 if (!user) {
   window.location.href = "login.html";
 }
@@ -60,7 +60,7 @@ if (!user) {
   <div class="sidebar-divider"></div>
   
     <!-- YÖNETİM PANELİ (sadece admin) -->
-  <a class="nav-item" href="yonetim.html" id="nav-yonetim" style="display:none;">
+  <a class="nav-item" href="index.html#admin" id="nav-yonetim" style="display:none;">
     <span class="nav-icon">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
@@ -138,7 +138,7 @@ window.createProj = async () => {
   const name  = document.getElementById('pName').value.trim();
   if (!name) { toast('Proje adı gerekli!', 'error'); return; }
   const color = document.getElementById('pColor').value;
-  const user  = JSON.parse(localStorage.getItem('user') || '{}');
+  const user  = getCurrentUser();
 
   const res = await fetch(`${API}/projects`, {
     method: 'POST',
@@ -167,7 +167,7 @@ function openTaskModal(col) {
   if (dlEl) {
     dlEl.value = '';
     dlEl.closest('.field-row').style.display =
-      JSON.parse(localStorage.getItem('user')||'{}').role === 'admin' ? '' : 'none';
+      isAdmin() ? '' : 'none';
   }
   document.getElementById('taskModalBg').classList.add('open');
   setTimeout(() => document.getElementById('mTitle').focus(), 100);
@@ -178,7 +178,7 @@ async function saveTask() {
   const title = document.getElementById('mTitle').value.trim();
   if (!title) { toast('Başlık zorunlu!', 'error'); return; }
 
-  const user   = JSON.parse(localStorage.getItem('user') || '{}');
+  const user   = getCurrentUser();
   const projId = parseInt(ST.activeProj) || null;
   const body   = {
     title,
@@ -198,13 +198,17 @@ async function saveTask() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
+    notifyDemoSync('task-updated', body);
     toast('Güncellendi', 'success');
   } else {
-    await fetch(`${API}/tasks`, {
+    const createRes = await fetch(`${API}/tasks`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
+    const createdTask = await createRes.json();
+    await notifyAssignee(createdTask.assignee, createdTask.title);
+    notifyDemoSync('task-created', createdTask);
     toast('Görev eklendi', 'success');
   }
 
@@ -220,12 +224,12 @@ async function delTask(id) {
 }
 
 function colHTML(colId, title, color, tasks) {
-  const isAdmin = JSON.parse(localStorage.getItem('user') || '{}').role === 'admin';
+  const canManageTasks = isAdmin();
   const ct = tasks.filter(t => t.col === colId);
   return `<div class="k-col" id="col-${colId}" ondragover="dover(event,'${colId}')" ondrop="ddrop(event,'${colId}')" ondragleave="dleave('${colId}')">
     <div class="k-col-header"><div class="k-col-indicator" style="background:${color}"></div><div class="k-col-title" style="color:${color}">${title}</div><div class="k-col-count">${ct.length}</div></div>
     <div class="k-body" id="kb-${colId}">${ct.length ? ct.map(taskCardHTML).join('') : '<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">Görev yok</div></div>'}</div>
-    ${isAdmin ? `<div class="k-footer"><button class="k-add" onclick="openTaskModal('${colId}')">＋ Görev ekle</button></div>` : ''}
+    ${canManageTasks ? `<div class="k-footer"><button class="k-add" onclick="openTaskModal('${colId}')">＋ Görev ekle</button></div>` : ''}
   </div>`;
 }
 
@@ -247,7 +251,8 @@ async function renderKanban() {
   if (!projId) return;
 
   const res = await fetch(`${API}/tasks?project_id=${projId}`);
-  _allTasks = await res.json();
+  const allTasks = await res.json();
+  _allTasks = isAdmin() ? allTasks : allTasks.filter(isTaskVisibleForCurrentUser);
 
   const filterVal = document.getElementById('tagFilter')?.value || '';
   setFilter(filterVal);
@@ -259,11 +264,10 @@ function setFilter(val) {
     ? _allTasks.filter(t => (TAG_NAMES[t.tag] || t.tag).toLowerCase().includes(_activeFilter))
     : _allTasks;
 
-  const isAdmin = JSON.parse(localStorage.getItem('user') || '{}').role === 'admin';
   document.getElementById('mainBoard').innerHTML =
-    colHTML('todo',  'Yapılacak',    'var(--text2)',        tasks, isAdmin) +
-    colHTML('doing', 'Devam Ediyor', 'var(--accent-light)', tasks, isAdmin) +
-    colHTML('done',  'Tamamlandı',   'var(--green)',        tasks, isAdmin);
+    colHTML('todo',  'Yapılacak',    'var(--text2)',        tasks) +
+    colHTML('doing', 'Devam Ediyor', 'var(--accent-light)', tasks) +
+    colHTML('done',  'Tamamlandı',   'var(--green)',        tasks);
 }
 
 function handleSearch(q){
@@ -276,22 +280,23 @@ function handleSearch(q){
     return `<div class="k-col"><div class="k-col-header"><div class="k-col-indicator" style="background:${color}"></div><div class="k-col-title" style="color:${color}">${title}</div><div class="k-col-count">${ct.length}</div></div><div class="k-body">${ct.length?ct.map(taskCardHTML).join(''):'<div class="empty"><div class="empty-icon">🔍</div><div class="empty-text">Sonuç yok</div></div>'}</div></div>`;
   }).join('');
 }
-renderKanban();
+if (getCurrentUser().id) renderKanban();
 
-// Rol kontrolü — sadece admin görev ekleyebilir
-const _user = JSON.parse(localStorage.getItem('user') || '{}');
-if (_user.role === 'admin') {
+if (isAdmin()) {
   document.getElementById('addTaskBtn').style.display = 'inline-flex';
 }
 
 applyTheme(getTheme());
 renderUserPill();
 document.addEventListener('DOMContentLoaded', async () => {
+  const user = requireAuth();
+  if (!user) return;
   updateBadge();
   renderChat();
   await renderProjDD();
   renderOverview();
   loadTagOptions();
+  showAdminNav();
 });
 </script>
 </body></html>
