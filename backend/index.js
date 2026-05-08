@@ -10,6 +10,15 @@ const projectRoutes = require("./routes/projectRoutes");
 const taskRoutes = require("./routes/taskRoutes");
 const userRoutes = require("./routes/userRoutes");
 
+// ── Process-level hata yakalayıcılar ──
+// Herhangi bir route'dan kaçan hata süreci çökertmemeli
+process.on("unhandledRejection", (reason) => {
+  console.error("[unhandledRejection]", reason);
+});
+process.on("uncaughtException", (err) => {
+  console.error("[uncaughtException]", err.message);
+});
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -21,7 +30,6 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
 app.use(
   cors({
     origin: (origin, cb) => {
-      // origin undefined = curl / server-side / same-origin istekler
       if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
       cb(new Error(`CORS: ${origin} izin verilmedi`));
     },
@@ -30,7 +38,6 @@ app.use(
 );
 
 // ── Rate Limiting ──
-// Login: 5 dakikada max 10 deneme — brute force koruması
 const loginLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
   max: 10,
@@ -39,7 +46,6 @@ const loginLimiter = rateLimit({
   message: { success: false, message: "Çok fazla deneme. 5 dakika bekleyin." },
 });
 
-// Genel API: dakikada 120 istek
 const apiLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 120,
@@ -67,9 +73,12 @@ app.use("/projects", projectRoutes);
 app.use("/tasks", taskRoutes);
 app.use("/deadlines", deadlineRoutes);
 
+// ── Global hata handler ──
+// next(err) ile gelen tüm hatalar buraya düşer, soket açık kalır
 app.use((err, req, res, next) => {
-  console.error(err);
-  res.status(500).json({ success: false, message: "Internal server error" });
+  if (res.headersSent) return next(err);
+  console.error(`[ERROR] ${req.method} ${req.path}:`, err.message);
+  res.status(500).json({ success: false, message: "Sunucu hatası" });
 });
 
 connectDB().finally(() => {
