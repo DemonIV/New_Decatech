@@ -1,14 +1,15 @@
 const express = require("express");
 const router = express.Router();
 const { client } = require("../config/db");
+const auth = require("../middleware/auth");
 
-router.get("/", async (req, res) => {
+router.get("/", auth, async (req, res) => {
   const result = await client.query("SELECT * FROM projects ORDER BY created_at");
 
   res.json(result.rows);
 });
 
-router.post("/", async (req, res) => {
+router.post("/", auth, async (req, res) => {
   const { name, color, created_by } = req.body;
 
   const result = await client.query(
@@ -19,7 +20,7 @@ router.post("/", async (req, res) => {
   res.json(result.rows[0]);
 });
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", auth, async (req, res) => {
   await client.query("DELETE FROM projects WHERE id=$1", [req.params.id]);
 
   res.send("Silindi");

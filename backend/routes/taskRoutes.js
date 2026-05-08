@@ -1,8 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const { client } = require("../config/db");
+const auth = require("../middleware/auth");
 
-router.get("/", async (req, res) => {
+router.get("/", auth, async (req, res) => {
   const { project_id } = req.query;
   const baseQuery = `
     SELECT t.*, u.username AS assignee_username
@@ -29,7 +30,7 @@ router.get("/", async (req, res) => {
   res.json(result.rows);
 });
 
-router.post("/", async (req, res) => {
+router.post("/", auth, async (req, res) => {
   const {
     title,
     description,
@@ -60,7 +61,7 @@ router.post("/", async (req, res) => {
   res.json(result.rows[0]);
 });
 
-router.put("/:id", async (req, res) => {
+router.put("/:id", auth, async (req, res) => {
   const { title, description, col, tag, priority, assignee, deadline } = req.body;
 
   const current = await client.query("SELECT * FROM tasks WHERE id=$1", [
@@ -97,7 +98,7 @@ router.put("/:id/col", async (req, res) => {
   res.send("Taşındı");
 });
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", auth, async (req, res) => {
   await client.query("DELETE FROM tasks WHERE id=$1", [req.params.id]);
 
   res.send("Silindi");

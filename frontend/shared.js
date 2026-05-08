@@ -30,6 +30,33 @@ const DEFAULT_NOTIFS = [];
 
 window.API = window.API || 'http://localhost:3000';
 
+// ── JWT token yönetimi ──
+window.getToken = () => sessionStorage.getItem('dct_token');
+window.setToken = (t) => sessionStorage.setItem('dct_token', t);
+window.clearToken = () => sessionStorage.removeItem('dct_token');
+
+// ── Global fetch interceptor: API isteklerine otomatik Bearer token ekler ──
+(function() {
+  const _origFetch = window.fetch.bind(window);
+  window.fetch = function(url, opts = {}) {
+    if (typeof url === 'string' && url.startsWith(window.API)) {
+      const token = window.getToken();
+      if (token) {
+        opts = { ...opts, headers: { Authorization: `Bearer ${token}`, ...(opts.headers || {}) } };
+      }
+    }
+    return _origFetch(url, opts).then(res => {
+      if (res.status === 401 && typeof url === 'string' && url.startsWith(window.API)
+          && !url.includes('/users/login')) {
+        window.clearToken();
+        window.clearCurrentUser?.();
+        window.location.href = 'login.html';
+      }
+      return res;
+    });
+  };
+})();
+
 window.getCurrentUser = () => {
   try {
     return JSON.parse(sessionStorage.getItem('user') || '{}');
@@ -709,6 +736,7 @@ backdrop-filter: blur(12px);
 };
 
 window.logout = () => {
+  clearToken();
   clearCurrentUser();
   window.location.href = 'login.html';
 };

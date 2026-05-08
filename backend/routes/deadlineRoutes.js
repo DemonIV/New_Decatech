@@ -1,8 +1,9 @@
 const express = require("express");
 const router = express.Router();
 const { client } = require("../config/db");
+const auth = require("../middleware/auth");
 
-router.post("/", async (req, res) => {
+router.post("/", auth, async (req, res) => {
   const { title, description, due_date, assigned_role, created_by } = req.body;
 
   await client.query(
@@ -13,7 +14,7 @@ router.post("/", async (req, res) => {
   res.send("Deadline eklendi");
 });
 
-router.get("/", async (req, res) => {
+router.get("/", auth, async (req, res) => {
   const { role } = req.query;
   let result;
 
@@ -29,7 +30,7 @@ router.get("/", async (req, res) => {
   res.json(result.rows);
 });
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", auth, async (req, res) => {
   const { id } = req.params;
 
   await client.query("DELETE FROM deadlines WHERE id=$1", [id]);
@@ -37,7 +38,7 @@ router.delete("/:id", async (req, res) => {
   res.send("Silindi");
 });
 
-router.put("/:id", async (req, res) => {
+router.put("/:id", auth, async (req, res) => {
   const { due_date } = req.body;
 
   await client.query("UPDATE deadlines SET due_date=$1 WHERE id=$2", [
