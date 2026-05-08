@@ -23,7 +23,8 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
 app.use(
   cors({
     origin: (origin, cb) => {
-      if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+      // null origin: dosya sistemininden (file://) açılan sayfalar
+      if (!origin || origin === "null" || allowedOrigins.includes(origin)) return cb(null, true);
       cb(new Error(`CORS: ${origin} izin verilmedi`));
     },
     credentials: true,
