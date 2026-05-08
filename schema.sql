@@ -121,7 +121,7 @@ CREATE TABLE public.tasks (
     col character varying(20) DEFAULT 'todo'::character varying,
     tag character varying(30) DEFAULT 'pill-blue'::character varying,
     priority character varying(30) DEFAULT 'pill-green'::character varying,
-    assignee character varying(10),
+    assignee integer,
     project_id integer,
     created_by integer,
     created_at timestamp without time zone DEFAULT now(),
@@ -301,7 +301,7 @@ ALTER TABLE ONLY public.users
 --
 
 ALTER TABLE ONLY public.deadlines
-    ADD CONSTRAINT deadlines_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id);
+    ADD CONSTRAINT deadlines_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL;
 
 
 --
@@ -310,7 +310,7 @@ ALTER TABLE ONLY public.deadlines
 --
 
 ALTER TABLE ONLY public.projects
-    ADD CONSTRAINT projects_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id);
+    ADD CONSTRAINT projects_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL;
 
 
 --
@@ -319,7 +319,15 @@ ALTER TABLE ONLY public.projects
 --
 
 ALTER TABLE ONLY public.tasks
-    ADD CONSTRAINT tasks_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id);
+    ADD CONSTRAINT tasks_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: tasks tasks_assignee_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.tasks
+    ADD CONSTRAINT tasks_assignee_fkey FOREIGN KEY (assignee) REFERENCES public.users(id) ON DELETE SET NULL;
 
 
 --

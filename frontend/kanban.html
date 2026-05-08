@@ -118,7 +118,7 @@ if (!user) {
       <div class="field-row"><label class="field-label">Öncelik</label><select class="field-select" id="mPriority"><option value="pill-green">Düşük</option><option value="pill-amber">Orta</option><option value="pill-red">Yüksek</option></select></div>
     </div>
     <div class="field-grid2">
-      <div class="field-row"><label class="field-label">Sorumlu</label><input class="field-input" type="text" id="mAssignee" placeholder="ör: AY"></div>
+      <div class="field-row"><label class="field-label">Sorumlu</label><select class="field-select assignee-select" id="mAssignee"><option value="">— Sorumlu seç —</option></select></div>
       <div class="field-row"><label class="field-label">Sütun</label><select class="field-select" id="mCol"><option value="todo">Yapılacak</option><option value="doing">Devam Ediyor</option><option value="done">Tamamlandı</option></select></div>
     </div>
     <div class="field-row">
@@ -186,7 +186,7 @@ async function saveTask() {
     col:         document.getElementById('mCol').value,
     tag:         document.getElementById('mTag').value,
     priority:    document.getElementById('mPriority').value,
-    assignee:    document.getElementById('mAssignee').value.trim().toUpperCase().slice(0,3),
+    assignee:    parseInt(document.getElementById('mAssignee').value) || null,
     deadline: document.getElementById('mDeadline')?.value || null,
     project_id:  projId,
     created_by:  user.id
@@ -296,6 +296,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await renderProjDD();
   renderOverview();
   loadTagOptions();
+  loadAssigneeOptions();
   showAdminNav();
 });
 </script>

@@ -96,14 +96,14 @@ window.currentUserInitials = () => {
 
 window.isTaskVisibleForCurrentUser = (task) => {
   if (isAdmin()) return true;
-  const initials = currentUserInitials();
-  return !task.assignee || String(task.assignee).toUpperCase() === initials;
+  const uid = getCurrentUser().id;
+  return !task.assignee || task.assignee === uid;
 };
 
 window.canManageTask = (task) => {
   if (isAdmin()) return true;
-  const initials = currentUserInitials();
-  return String(task.assignee || '').toUpperCase() === initials;
+  const uid = getCurrentUser().id;
+  return task.assignee === uid;
 };
 
 const syncChannel = 'BroadcastChannel' in window ? new BroadcastChannel('decatech-demo-sync') : null;
@@ -228,23 +228,9 @@ window.addNotifForUser = (userId, icon, title, body) => {
   notifyDemoSync('notification');
 };
 
-window.notifyAssignee = async (assignee, title) => {
-  if (!assignee) return;
-
-  try {
-    const res = await fetch(`${API}/users`);
-    const users = await res.json();
-    const target = users.find((user) => {
-      const initials = (user.initials || user.username || '').slice(0, 2).toUpperCase();
-      return initials === String(assignee).toUpperCase();
-    });
-
-    if (target) {
-      addNotifForUser(target.id, '📋', 'Yeni görev atandı', `"${title}" görevi size atandı.`);
-    }
-  } catch (err) {
-    console.error('Görev bildirimi gönderilemedi:', err);
-  }
+window.notifyAssignee = (assigneeId, title) => {
+  if (!assigneeId) return;
+  addNotifForUser(assigneeId, '📋', 'Yeni görev atandı', `"${title}" görevi size atandı.`);
 };
 
 // ── Update notification badge (call from each page) ──
@@ -420,7 +406,7 @@ window.taskCardHTML = (t) => {
     <div class="k-card-footer">
       <span class="pill ${t.tag}">${TAG_NAMES[t.tag]||t.tag}</span>
       <span class="pill ${t.priority}">${PRIO_NAMES[t.priority]||t.priority}</span>
-      ${t.assignee ? `<div class="k-assignee" title="${t.assignee}">${t.assignee}</div>` : ''}
+      ${t.assignee ? `<div class="k-assignee" title="${t.assignee_username || ''}">${(t.assignee_username || '').slice(0,2).toUpperCase()}</div>` : ''}
       ${dl ? `<div class="k-card-deadline ${isOverdue ? 'overdue' : ''}">
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
         ${dl}
@@ -611,7 +597,7 @@ window.openEditTask = function(id) {
   document.getElementById('mDesc').value     = t.description || '';
   document.getElementById('mTag').value      = t.tag;
   document.getElementById('mPriority').value = t.priority;
-  document.getElementById('mAssignee').value = t.assignee || '';
+  document.getElementById('mAssignee').value = t.assignee ?? '';
   document.getElementById('mCol').value      = t.col;
   const dlEl = document.getElementById('mDeadline');
   if (dlEl) {
@@ -762,6 +748,21 @@ function normalizeRole(role) {
     .replace(/ö/g,'o').replace(/ı/g,'i').replace(/ç/g,'c')
     .trim();
 }
+
+window.loadAssigneeOptions = async () => {
+  try {
+    const res = await fetch(`${API}/users`);
+    const users = await res.json();
+    const nonAdmins = users.filter(u => u.role !== 'admin');
+    const options = '<option value="">— Sorumlu seç —</option>' +
+      nonAdmins.map(u => `<option value="${u.id}">${u.username}</option>`).join('');
+    document.querySelectorAll('.assignee-select').forEach(sel => {
+      const current = sel.value;
+      sel.innerHTML = options;
+      sel.value = current;
+    });
+  } catch(e) { console.error('Sorumlular yüklenemedi', e); }
+};
 
 window.loadTagOptions = async () => {
   try {

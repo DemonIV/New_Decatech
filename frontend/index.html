@@ -227,7 +227,7 @@ if (!user) {
             <option value="doing">Devam Ediyor</option>
             <option value="done">Tamamlandı</option>
           </select>
-          <input class="field-input" id="adminTaskAssignee" placeholder="Sorumlu">
+          <select class="field-select assignee-select" id="adminTaskAssignee"><option value="">— Sorumlu seç —</option></select>
           <input class="field-input" id="adminTaskDeadline" type="date">
         </div>
         <button class="btn btn-primary btn-sm" onclick="adminReviseTask()">Görevi Güncelle</button>
@@ -302,7 +302,7 @@ if (!user) {
       </div>
     </div>
     <div class="field-grid2">
-      <div class="field-row"><label class="field-label">Sorumlu</label><input class="field-input" type="text" id="mAssignee" placeholder="ör: AY"></div>
+      <div class="field-row"><label class="field-label">Sorumlu</label><select class="field-select assignee-select" id="mAssignee"><option value="">— Sorumlu seç —</option></select></div>
       <div class="field-row"><label class="field-label">Sütun</label>
         <select class="field-select" id="mCol">
           <option value="todo">Yapılacak</option><option value="doing">Devam Ediyor</option><option value="done">Tamamlandı</option>
@@ -403,21 +403,11 @@ async function saveTask() {
     col:         document.getElementById('mCol')?.value,
     tag:         document.getElementById('mTag')?.value,
     priority:    document.getElementById('mPriority')?.value,
-    assignee:    document.getElementById('mAssignee')?.value.trim().toUpperCase().slice(0,3) || '',
+    assignee:    parseInt(document.getElementById('mAssignee')?.value) || null,
     deadline:    document.getElementById('mDeadline')?.value || null,
     project_id:  projId,
     created_by:  user.id
   };
-
-  if (body.assignee) {
-    const resU = await fetch(`${API}/users`);
-    const users = await resU.json();
-    const target = users.find(u => (u.initials || u.username || '').slice(0,2).toUpperCase() === body.assignee.slice(0,2));
-    if (target && target.role === 'admin') {
-      toast('Admin kullanıcısına görev atanamaz!', 'error');
-      return;
-    }
-  }
 
   if (_editingTask) {
     await fetch(`${API}/tasks/${_editingTask}`, {
@@ -485,8 +475,7 @@ function renderTaskSummary(tasks, actionHtml = '') {
 }
 
 function tasksForUser(tasks, user) {
-  const initials = String(user.initials || user.username || '').toUpperCase();
-  return tasks.filter((task) => String(task.assignee || '').toUpperCase() === initials);
+  return tasks.filter((task) => task.assignee === user.id);
 }
 
 async function renderAdminCompanyOverview() {
@@ -788,19 +777,9 @@ async function adminReviseTask() {
 
   const body = {
     col: document.getElementById('adminTaskCol').value,
-    assignee: document.getElementById('adminTaskAssignee').value.trim().toUpperCase().slice(0, 3),
+    assignee: parseInt(document.getElementById('adminTaskAssignee').value) || null,
     deadline: document.getElementById('adminTaskDeadline').value || null
   };
-
-  if (body.assignee) {
-    const resU = await fetch(`${API}/users`);
-    const users = await resU.json();
-    const target = users.find(u => (u.initials || u.username || '').slice(0,2).toUpperCase() === body.assignee.slice(0,2));
-    if (target && target.role === 'admin') {
-      toast('Admin kullanıcısına görev atanamaz!', 'error');
-      return;
-    }
-  }
 
   await fetch(`${API}/tasks/${id}`, {
     method: 'PUT',
@@ -826,6 +805,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   await renderProjDD();
   renderOverview();
   loadTagOptions();
+  loadAssigneeOptions();
   showAdminNav();
   await loadAdminPanelData();
   openAdminMenuFromHash();

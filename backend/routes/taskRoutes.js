@@ -4,6 +4,11 @@ const { client } = require("../config/db");
 
 router.get("/", async (req, res) => {
   const { project_id } = req.query;
+  const baseQuery = `
+    SELECT t.*, u.username AS assignee_username
+    FROM tasks t
+    LEFT JOIN users u ON t.assignee = u.id
+  `;
   let result;
 
   if (project_id) {
@@ -14,11 +19,11 @@ router.get("/", async (req, res) => {
     }
 
     result = await client.query(
-      "SELECT * FROM tasks WHERE project_id=$1 ORDER BY created_at",
+      baseQuery + "WHERE t.project_id=$1 ORDER BY t.created_at",
       [id]
     );
   } else {
-    result = await client.query("SELECT * FROM tasks ORDER BY created_at");
+    result = await client.query(baseQuery + "ORDER BY t.created_at");
   }
 
   res.json(result.rows);
@@ -45,7 +50,7 @@ router.post("/", async (req, res) => {
       col || "todo",
       tag || "pill-blue",
       priority || "pill-green",
-      assignee || null,
+      assignee ? parseInt(assignee, 10) : null,
       project_id || null,
       created_by || null,
       deadline || null,
@@ -75,7 +80,7 @@ router.put("/:id", async (req, res) => {
       col ?? task.col,
       tag ?? task.tag,
       priority ?? task.priority,
-      assignee ?? task.assignee,
+      assignee !== undefined ? (assignee ? parseInt(assignee, 10) : null) : task.assignee,
       deadline !== undefined ? deadline : task.deadline,
       req.params.id,
     ]
