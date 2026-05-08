@@ -6,7 +6,7 @@
     "start": "node index.js",
     "dev": "node --watch index.js",
     "mock": "node mock-server.js",
-    "test": "node -e \"console.log('No automated tests configured yet')\""
+    "test": "NODE_ENV=test jest --runInBand --forceExit"
   },
   "keywords": [],
   "author": "",
@@ -21,5 +21,9 @@
     "express-validator": "^7.3.2",
     "jsonwebtoken": "^9.0.3",
     "pg": "^8.20.0"
+  },
+  "devDependencies": {
+    "jest": "^30.4.1",
+    "supertest": "^7.2.2"
   }
 }
