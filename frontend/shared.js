@@ -34,21 +34,55 @@ window.API = window.API || 'http://localhost:3000';
 window.getToken = () => sessionStorage.getItem('dct_token');
 window.setToken = (t) => sessionStorage.setItem('dct_token', t);
 window.clearToken = () => sessionStorage.removeItem('dct_token');
+window.getRefreshToken = () => sessionStorage.getItem('dct_refresh_token');
+window.setRefreshToken = (t) => sessionStorage.setItem('dct_refresh_token', t);
+window.clearRefreshToken = () => sessionStorage.removeItem('dct_refresh_token');
 
 // ── Global fetch interceptor: API isteklerine otomatik Bearer token ekler ──
 (function() {
   const _origFetch = window.fetch.bind(window);
+  let _refreshing = null;
+
+  async function tryRefresh() {
+    const rt = window.getRefreshToken();
+    if (!rt) return false;
+    try {
+      const res = await _origFetch(`${window.API}/users/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken: rt }),
+      });
+      if (!res.ok) return false;
+      const data = await res.json();
+      if (data.token) { window.setToken(data.token); return true; }
+    } catch { /* network error */ }
+    return false;
+  }
+
   window.fetch = function(url, opts = {}) {
-    if (typeof url === 'string' && url.startsWith(window.API)) {
+    const isAPI = typeof url === 'string' && url.startsWith(window.API);
+    if (isAPI) {
       const token = window.getToken();
       if (token) {
         opts = { ...opts, headers: { Authorization: `Bearer ${token}`, ...(opts.headers || {}) } };
       }
     }
-    return _origFetch(url, opts).then(res => {
-      if (res.status === 401 && typeof url === 'string' && url.startsWith(window.API)
-          && !url.includes('/users/login')) {
+    return _origFetch(url, opts).then(async res => {
+      if (res.status === 401 && isAPI
+          && !url.includes('/users/login')
+          && !url.includes('/users/refresh')) {
+        if (!_refreshing) _refreshing = tryRefresh().finally(() => { _refreshing = null; });
+        const ok = await _refreshing;
+        if (ok) {
+          const newToken = window.getToken();
+          const retryOpts = {
+            ...opts,
+            headers: { ...(opts.headers || {}), Authorization: `Bearer ${newToken}` },
+          };
+          return _origFetch(url, retryOpts);
+        }
         window.clearToken();
+        window.clearRefreshToken();
         window.clearCurrentUser?.();
         window.location.href = 'login.html';
       }
@@ -735,8 +769,19 @@ backdrop-filter: blur(12px);
   });
 };
 
-window.logout = () => {
+window.logout = async () => {
+  const rt = getRefreshToken();
+  if (rt) {
+    try {
+      await fetch(`${API}/users/logout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken: rt }),
+      });
+    } catch { /* ignore network errors on logout */ }
+  }
   clearToken();
+  clearRefreshToken();
   clearCurrentUser();
   window.location.href = 'login.html';
 };

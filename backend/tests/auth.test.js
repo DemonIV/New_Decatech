@@ -20,6 +20,7 @@ describe("POST /users/login", () => {
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.token).toBeDefined();
+    expect(res.body.refreshToken).toBeDefined();
     expect(res.body.user.username).toBe("test_admin");
     expect(res.body.user.password).toBeUndefined(); // şifre dönmemeli
   });

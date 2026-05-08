@@ -1,20 +1,34 @@
 const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
+const jwt    = require("jsonwebtoken");
+const crypto = require("crypto");
 const { body, param } = require("express-validator");
 const { client } = require("../config/db");
-const auth = require("../middleware/auth");
+const auth     = require("../middleware/auth");
 const validate = require("../middleware/validate");
+const logger   = require("../utils/logger");
 
-const SALT_ROUNDS = 10;
+const SALT_ROUNDS         = 10;
+const REFRESH_TOKEN_DAYS  = 7;
 
-const signToken = (user) =>
+const signAccessToken = (user) =>
   jwt.sign(
     { id: user.id, username: user.username, role: user.role },
     process.env.JWT_SECRET,
     { expiresIn: "8h" }
   );
+
+const generateRefreshToken = () => crypto.randomBytes(64).toString("hex");
+
+const saveRefreshToken = async (userId, token) => {
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + REFRESH_TOKEN_DAYS);
+  await client.query(
+    "INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES ($1, $2, $3)",
+    [userId, token, expiresAt]
+  );
+};
 
 // 🔹 Kullanıcı ekle
 router.post(
@@ -65,7 +79,12 @@ router.post(
         return res.status(401).json({ success: false, message: "Hatalı giriş" });
       }
       const { password: _, ...safeUser } = user;
-      res.json({ success: true, token: signToken(safeUser), user: safeUser });
+      const accessToken  = signAccessToken(safeUser);
+      const refreshToken = generateRefreshToken();
+      await saveRefreshToken(safeUser.id, refreshToken);
+
+      logger.info(`Login: ${safeUser.username} (id:${safeUser.id})`);
+      res.json({ success: true, token: accessToken, refreshToken, user: safeUser });
     } catch (err) {
       res.status(503).json({ success: false, message: "Login hatası" });
     }
@@ -198,6 +217,44 @@ router.delete(
     } catch (err) {
       res.status(500).json({ success: false, message: "Hata" });
     }
+  }
+);
+
+// 🔹 REFRESH TOKEN
+router.post(
+  "/refresh",
+  [body("refreshToken").notEmpty().withMessage("Refresh token zorunlu")],
+  validate,
+  async (req, res, next) => {
+    try {
+      const { refreshToken } = req.body;
+      const { rows } = await client.query(
+        `SELECT rt.*, u.id AS uid, u.username, u.role
+         FROM refresh_tokens rt
+         JOIN users u ON rt.user_id = u.id
+         WHERE rt.token = $1 AND rt.expires_at > NOW()`,
+        [refreshToken]
+      );
+      if (!rows[0]) {
+        return res.status(401).json({ success: false, message: "Geçersiz veya süresi dolmuş refresh token" });
+      }
+      const user = { id: rows[0].uid, username: rows[0].username, role: rows[0].role };
+      const newAccessToken = signAccessToken(user);
+      res.json({ success: true, token: newAccessToken });
+    } catch (err) { next(err); }
+  }
+);
+
+// 🔹 LOGOUT
+router.post(
+  "/logout",
+  [body("refreshToken").notEmpty().withMessage("Refresh token zorunlu")],
+  validate,
+  async (req, res, next) => {
+    try {
+      await client.query("DELETE FROM refresh_tokens WHERE token=$1", [req.body.refreshToken]);
+      res.json({ success: true, message: "Çıkış yapıldı" });
+    } catch (err) { next(err); }
   }
 );
 
