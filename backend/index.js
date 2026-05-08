@@ -1,10 +1,11 @@
 require("dotenv").config();
+const logger = require("./utils/logger");
 
 process.on("unhandledRejection", (reason) => {
-  console.error("[unhandledRejection]", reason);
+  logger.error("unhandledRejection", { reason: String(reason) });
 });
 process.on("uncaughtException", (err) => {
-  console.error("[uncaughtException]", err.message);
+  logger.error("uncaughtException", { message: err.message, stack: err.stack });
 });
 
 const app = require("./app");
@@ -12,8 +13,12 @@ const { connectDB } = require("./config/db");
 
 const PORT = process.env.PORT || 3000;
 
-connectDB().finally(() => {
+connectDB().then(() => {
+  logger.info("Veritabanı bağlantısı kuruldu");
+}).catch((err) => {
+  logger.error("Veritabanı bağlantısı kurulamadı", { message: err.message });
+}).finally(() => {
   app.listen(PORT, () => {
-    console.log(`Server ${PORT} portta başladı.`);
+    logger.info(`Server başladı — port: ${PORT}, ortam: ${process.env.NODE_ENV || "development"}`);
   });
 });
