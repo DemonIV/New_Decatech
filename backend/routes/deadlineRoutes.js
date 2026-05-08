@@ -4,6 +4,7 @@ const { body, param } = require("express-validator");
 const { client } = require("../config/db");
 const auth = require("../middleware/auth");
 const validate = require("../middleware/validate");
+const { broadcast } = require("../utils/sse");
 
 router.post(
   "/",
@@ -21,6 +22,7 @@ router.post(
         "INSERT INTO deadlines (title, description, due_date, assigned_role, created_by) VALUES ($1,$2,$3,$4,$5)",
         [title, description || null, due_date, assigned_role, created_by || null]
       );
+      broadcast("deadlines", {});
       res.send("Deadline eklendi");
     } catch (err) { next(err); }
   }
@@ -44,6 +46,7 @@ router.delete(
   async (req, res, next) => {
     try {
       await client.query("DELETE FROM deadlines WHERE id=$1", [req.params.id]);
+      broadcast("deadlines", {});
       res.send("Silindi");
     } catch (err) { next(err); }
   }
@@ -60,6 +63,7 @@ router.put(
   async (req, res, next) => {
     try {
       await client.query("UPDATE deadlines SET due_date=$1 WHERE id=$2", [req.body.due_date, req.params.id]);
+      broadcast("deadlines", {});
       res.send("Güncellendi");
     } catch (err) { next(err); }
   }

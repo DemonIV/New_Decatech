@@ -195,10 +195,47 @@ window.addEventListener('storage', (event) => {
   }
 });
 
+window.startSSE = () => {
+  const token = getToken();
+  if (!token) return;
+  if (window.__sseSource) { window.__sseSource.close(); window.__sseSource = null; }
+
+  let retryDelay = 2000;
+  const es = new EventSource(`${API}/events?token=${encodeURIComponent(token)}`);
+  window.__sseSource = es;
+
+  es.addEventListener('tasks', () => {
+    if (typeof renderKanban === 'function') renderKanban();
+    if (typeof renderOverview === 'function') renderOverview();
+    if (typeof renderReports === 'function') renderReports();
+  });
+
+  es.addEventListener('projects', () => {
+    renderProjDD();
+  });
+
+  es.addEventListener('deadlines', () => {
+    if (typeof loadDeadlines === 'function') loadDeadlines();
+    if (typeof loadTaskDeadlines === 'function') loadTaskDeadlines();
+    if (typeof loadCalendarData === 'function') loadCalendarData();
+  });
+
+  es.onopen = () => { retryDelay = 2000; };
+
+  es.onerror = () => {
+    es.close();
+    window.__sseSource = null;
+    setTimeout(() => {
+      retryDelay = Math.min(retryDelay * 2, 30000);
+      startSSE();
+    }, retryDelay);
+  };
+};
+
 window.startDemoRealtime = () => {
   if (window.__demoRealtimeStarted) return;
   window.__demoRealtimeStarted = true;
-  setInterval(refreshDemoViews, 3000);
+  startSSE();
 };
 
 window.initChatToggle = () => {
@@ -770,6 +807,7 @@ backdrop-filter: blur(12px);
 };
 
 window.logout = async () => {
+  if (window.__sseSource) { window.__sseSource.close(); window.__sseSource = null; }
   const rt = getRefreshToken();
   if (rt) {
     try {

@@ -4,6 +4,7 @@ const { body, param, query } = require("express-validator");
 const { client } = require("../config/db");
 const auth = require("../middleware/auth");
 const validate = require("../middleware/validate");
+const { broadcast } = require("../utils/sse");
 
 const VALID_COLS  = ["todo", "doing", "done"];
 const VALID_TAGS  = ["pill-blue", "pill-violet", "pill-green", "pill-amber", "pill-red", "pill-cyan"];
@@ -59,6 +60,7 @@ router.post(
           deadline || null,
         ]
       );
+      broadcast("tasks", {});
       res.json(result.rows[0]);
     } catch (err) { next(err); }
   }
@@ -96,6 +98,7 @@ router.put(
           req.params.id,
         ]
       );
+      broadcast("tasks", {});
       res.send("Güncellendi");
     } catch (err) { next(err); }
   }
@@ -112,6 +115,7 @@ router.put(
   async (req, res, next) => {
     try {
       await client.query("UPDATE tasks SET col=$1 WHERE id=$2", [req.body.col, req.params.id]);
+      broadcast("tasks", {});
       res.send("Taşındı");
     } catch (err) { next(err); }
   }
@@ -125,6 +129,7 @@ router.delete(
   async (req, res, next) => {
     try {
       await client.query("DELETE FROM tasks WHERE id=$1", [req.params.id]);
+      broadcast("tasks", {});
       res.send("Silindi");
     } catch (err) { next(err); }
   }

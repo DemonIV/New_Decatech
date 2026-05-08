@@ -10,6 +10,7 @@ const deadlineRoutes = require("./routes/deadlineRoutes");
 const projectRoutes  = require("./routes/projectRoutes");
 const taskRoutes     = require("./routes/taskRoutes");
 const userRoutes     = require("./routes/userRoutes");
+const sseRoutes      = require("./routes/sseRoutes");
 
 const app = express();
 const isTest = process.env.NODE_ENV === "test";
@@ -80,6 +81,7 @@ app.use("/users",     userRoutes);
 app.use("/projects",  projectRoutes);
 app.use("/tasks",     taskRoutes);
 app.use("/deadlines", deadlineRoutes);
+app.use("/events",    sseRoutes);
 
 // ── Global Error Handler ──
 app.use((err, req, res, next) => {

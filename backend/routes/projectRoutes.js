@@ -4,6 +4,7 @@ const { body, param } = require("express-validator");
 const { client } = require("../config/db");
 const auth = require("../middleware/auth");
 const validate = require("../middleware/validate");
+const { broadcast } = require("../utils/sse");
 
 router.get("/", auth, async (req, res, next) => {
   try {
@@ -27,6 +28,7 @@ router.post(
         "INSERT INTO projects (name, color, created_by) VALUES ($1,$2,$3) RETURNING *",
         [name, color || "#2d5299", created_by || null]
       );
+      broadcast("projects", {});
       res.json(result.rows[0]);
     } catch (err) { next(err); }
   }
@@ -40,6 +42,7 @@ router.delete(
   async (req, res, next) => {
     try {
       await client.query("DELETE FROM projects WHERE id=$1", [req.params.id]);
+      broadcast("projects", {});
       res.send("Silindi");
     } catch (err) { next(err); }
   }
